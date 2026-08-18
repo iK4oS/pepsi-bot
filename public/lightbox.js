@@ -7,3 +7,7 @@ export function lightboxPayload(post, index) {
     caption: post.text
   };
 }
+
+export function shouldCloseFromTarget(target, dialog, figure) {
+  return target === dialog || target === figure;
+}

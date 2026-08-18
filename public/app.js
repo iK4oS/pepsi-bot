@@ -1,5 +1,5 @@
 import { centeredColumnCount } from './layout.js';
-import { lightboxPayload } from './lightbox.js';
+import { lightboxPayload, shouldCloseFromTarget } from './lightbox.js';
 import { matchesPost } from './search.js';
 import { initialTheme, nextTheme } from './theme.js';
 
@@ -11,6 +11,7 @@ const themeToggle = document.querySelector('#theme-toggle');
 const lightbox = document.querySelector('#lightbox');
 const lightboxImage = lightbox.querySelector('img');
 const lightboxCaption = lightbox.querySelector('figcaption');
+const lightboxFigure = lightbox.querySelector('figure');
 const lightboxClose = lightbox.querySelector('.lightbox-close');
 const template = document.querySelector('#post-template');
 
@@ -126,7 +127,7 @@ themeToggle.addEventListener('click', () => {
 });
 lightboxClose.addEventListener('click', () => lightbox.close());
 lightbox.addEventListener('click', event => {
-  if (event.target === lightbox) lightbox.close();
+  if (shouldCloseFromTarget(event.target, lightbox, lightboxFigure)) lightbox.close();
 });
 window.addEventListener('resize', centerCollage, { passive: true });
 load();
