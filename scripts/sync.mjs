@@ -156,6 +156,9 @@ async function main() {
     return;
   }
   const extracted = messages.map(message => extractPost(message, { guildId, channelId, targetUserId })).filter(Boolean);
+  const forwarded = messages.filter(message => message.message_snapshots?.length);
+  const eligibleForwards = forwarded.map(message => extractPost(message, { guildId, channelId, targetUserId })).filter(Boolean);
+  console.log(`Forward snapshots: ${forwarded.length}; with text and image: ${eligibleForwards.length}.`);
   const materialized = [];
   for (const post of extracted) {
     const archived = await materializePost(post);
