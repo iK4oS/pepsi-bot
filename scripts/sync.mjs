@@ -41,7 +41,7 @@ function cleanCaption(value = '') {
 }
 
 export function extractPost(wrapper, { guildId, channelId, targetUserId }) {
-  const isForward = wrapper.message_reference?.type === 1 && wrapper.message_snapshots?.length;
+  const isForward = Boolean(wrapper.message_snapshots?.length);
   if (wrapper.author?.id !== targetUserId && !isForward) return null;
   const snapshot = isForward ? wrapper.message_snapshots[0].message : null;
   const source = snapshot ?? wrapper;

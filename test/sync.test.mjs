@@ -37,7 +37,6 @@ test('extracts forwarded snapshots regardless of the forwarding wrapper author',
     timestamp: '2026-08-18T09:00:00.000Z',
     attachments: [],
     embeds: [],
-    message_reference: { type: 1 },
     message_snapshots: [{ message: {
       content: 'Forwarded caption',
       attachments: [],
