@@ -1,6 +1,9 @@
 name: Sync Discord collage
 
 on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/sync.yml]
   workflow_dispatch:
     inputs:
       full_sync:
@@ -39,7 +42,7 @@ jobs:
           DISCORD_CHANNEL_ID: "1156474286303891486"
           DISCORD_CHANNEL_IDS: "1156474286303891486,1096355083823890452"
           DISCORD_TARGET_USER_ID: "673196202870833164"
-          FULL_SYNC: ${{ inputs.full_sync || 'false' }}
+          FULL_SYNC: ${{ github.event_name == 'push' && 'true' || inputs.full_sync || 'false' }}
       - name: Commit new content
         run: |
           if git diff --quiet -- public/data public/media; then
