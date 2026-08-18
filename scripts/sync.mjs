@@ -41,8 +41,9 @@ function cleanCaption(value = '') {
 }
 
 export function extractPost(wrapper, { guildId, channelId, targetUserId }) {
-  if (wrapper.author?.id !== targetUserId) return null;
-  const snapshot = wrapper.message_reference?.type === 1 ? wrapper.message_snapshots?.[0]?.message : null;
+  const isForward = wrapper.message_reference?.type === 1 && wrapper.message_snapshots?.length;
+  if (wrapper.author?.id !== targetUserId && !isForward) return null;
+  const snapshot = isForward ? wrapper.message_snapshots[0].message : null;
   const source = snapshot ?? wrapper;
   const embedText = (source.embeds ?? [])
     .flatMap(embed => [embed.title, embed.description])
@@ -64,6 +65,10 @@ export function mergePosts(existing, fresh) {
   const byId = new Map(existing.map(post => [post.id, post]));
   for (const post of fresh) byId.set(post.id, post);
   return [...byId.values()].sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+}
+
+export function scanCursor(savedCursor, fullSync = false) {
+  return fullSync ? null : savedCursor;
 }
 
 export async function discordRequest(url, token, fetcher = fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), attempt = 1) {
@@ -143,9 +148,11 @@ async function main() {
   let state = { updatedAt: null, lastScannedId: null, posts: [] };
   try { state = { ...state, ...JSON.parse(await readFile(DATA_PATH, 'utf8')) }; } catch {}
 
-  const messages = await fetchMessages(token, channelId, state.lastScannedId);
+  const fullSync = /^(1|true|yes)$/i.test(process.env.FULL_SYNC ?? '');
+  const cursor = scanCursor(state.lastScannedId, fullSync);
+  const messages = await fetchMessages(token, channelId, cursor);
   if (messages.length === 0) {
-    console.log(`No messages newer than ${state.lastScannedId ?? 'the beginning'}; nothing to update.`);
+    console.log(`No messages newer than ${cursor ?? 'the beginning'}; nothing to update.`);
     return;
   }
   const extracted = messages.map(message => extractPost(message, { guildId, channelId, targetUserId })).filter(Boolean);

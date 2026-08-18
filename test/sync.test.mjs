@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { discordRequest, extractPost, materializePost, mergePosts } from '../scripts/sync.mjs';
+import { discordRequest, extractPost, materializePost, mergePosts, scanCursor } from '../scripts/sync.mjs';
 
 const context = {
   guildId: '828022955875368981',
@@ -28,11 +28,11 @@ test('extracts text, date, link, and image attachments from a target-user messag
   });
 });
 
-test('extracts forwarded snapshot text and images while filtering by forwarding user', () => {
+test('extracts forwarded snapshots regardless of the forwarding wrapper author', () => {
   const message = {
     id: '201',
     channel_id: context.channelId,
-    author: { id: context.targetUserId },
+    author: { id: 'different-wrapper-author' },
     content: '',
     timestamp: '2026-08-18T09:00:00.000Z',
     attachments: [],
@@ -73,6 +73,11 @@ test('rejects URL-only captions and removes media URLs from real captions', () =
   };
   assert.equal(extractPost({ ...base, content: 'https://cdn.discordapp.com/photo.jpg' }, context), null);
   assert.equal(extractPost({ ...base, content: 'Dinner tonight\nhttps://cdn.discordapp.com/photo.jpg' }, context).text, 'Dinner tonight');
+});
+
+test('full sync ignores the saved incremental cursor', () => {
+  assert.equal(scanCursor('123', false), '123');
+  assert.equal(scanCursor('123', true), null);
 });
 
 test('retries Discord rate limits using the server retry delay', async () => {

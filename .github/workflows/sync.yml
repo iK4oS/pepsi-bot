@@ -2,6 +2,12 @@ name: Sync Discord collage
 
 on:
   workflow_dispatch:
+    inputs:
+      full_sync:
+        description: "Rescan the complete channel backlog"
+        required: false
+        type: boolean
+        default: false
   schedule:
     - cron: "*/5 * * * *"
 
@@ -32,6 +38,7 @@ jobs:
           DISCORD_GUILD_ID: "828022955875368981"
           DISCORD_CHANNEL_ID: "1156474286303891486"
           DISCORD_TARGET_USER_ID: "673196202870833164"
+          FULL_SYNC: ${{ inputs.full_sync || 'false' }}
       - name: Commit new content
         run: |
           if git diff --quiet -- public/data public/media; then
