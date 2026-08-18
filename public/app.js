@@ -1,11 +1,14 @@
 import { centeredColumnCount } from './layout.js';
+import { matchesPost } from './search.js';
 
 const collage = document.querySelector('#collage');
 const empty = document.querySelector('#empty');
 const status = document.querySelector('#status');
+const search = document.querySelector('#post-search');
 const template = document.querySelector('#post-template');
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+let allPosts = [];
 let postCount = 0;
 
 function centerCollage() {
@@ -36,16 +39,31 @@ function renderPost(post) {
   return fragment;
 }
 
+function renderResults(query = '') {
+  const filtered = allPosts.filter(post => matchesPost(post, query));
+  collage.replaceChildren();
+  postCount = filtered.length;
+  centerCollage();
+  for (const post of filtered) collage.append(renderPost(post));
+
+  const searching = query.trim().length > 0;
+  empty.hidden = filtered.length !== 0;
+  empty.querySelector('h1').textContent = searching ? 'No matching posts.' : 'No photographs yet.';
+  empty.querySelector('p').textContent = searching
+    ? 'Try another message ID or title.'
+    : 'New posts with both text and images will appear here automatically.';
+  status.textContent = searching
+    ? `${filtered.length} of ${allPosts.length} posts`
+    : `${allPosts.length} ${allPosts.length === 1 ? 'post' : 'posts'}`;
+}
+
 async function load() {
   try {
     const response = await fetch('data/posts.json', { cache: 'no-cache' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    postCount = data.posts.length;
-    centerCollage();
-    for (const post of data.posts) collage.append(renderPost(post));
-    empty.hidden = data.posts.length !== 0;
-    status.textContent = `${data.posts.length} ${data.posts.length === 1 ? 'post' : 'posts'}`;
+    allPosts = data.posts;
+    renderResults();
   } catch (error) {
     console.error(error);
     status.textContent = 'Could not load the collage';
@@ -55,5 +73,12 @@ async function load() {
   }
 }
 
+search.addEventListener('input', () => renderResults(search.value));
+search.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && search.value) {
+    search.value = '';
+    renderResults();
+  }
+});
 window.addEventListener('resize', centerCollage, { passive: true });
 load();
