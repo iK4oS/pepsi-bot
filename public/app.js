@@ -1,4 +1,5 @@
 import { centeredColumnCount } from './layout.js';
+import { lightboxPayload } from './lightbox.js';
 import { matchesPost } from './search.js';
 import { initialTheme, nextTheme } from './theme.js';
 
@@ -7,6 +8,10 @@ const empty = document.querySelector('#empty');
 const status = document.querySelector('#status');
 const search = document.querySelector('#post-search');
 const themeToggle = document.querySelector('#theme-toggle');
+const lightbox = document.querySelector('#lightbox');
+const lightboxImage = lightbox.querySelector('img');
+const lightboxCaption = lightbox.querySelector('figcaption');
+const lightboxClose = lightbox.querySelector('.lightbox-close');
 const template = document.querySelector('#post-template');
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
@@ -35,20 +40,35 @@ function centerCollage() {
   collage.style.setProperty('--columns', centeredColumnCount(postCount, window.innerWidth));
 }
 
+function openLightbox(post, index) {
+  const payload = lightboxPayload(post, index);
+  lightboxImage.src = payload.src;
+  lightboxImage.alt = payload.alt;
+  lightboxCaption.textContent = payload.caption;
+  lightbox.showModal();
+}
+
 function renderPost(post) {
   const fragment = template.content.cloneNode(true);
   const article = fragment.querySelector('.post');
   const media = fragment.querySelector('.media');
   if (post.images.length > 1) media.classList.add('multi');
   for (const [index, image] of post.images.entries()) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'image-button';
     const img = document.createElement('img');
     img.src = image.src;
-    img.alt = index === 0 ? post.text : `Additional image ${index + 1}`;
+    const payload = lightboxPayload(post, index);
+    img.alt = payload.alt;
     img.loading = 'lazy';
     img.decoding = 'async';
     if (image.width) img.width = image.width;
     if (image.height) img.height = image.height;
-    media.append(img);
+    button.setAttribute('aria-label', `Enlarge ${payload.alt}`);
+    button.addEventListener('click', () => openLightbox(post, index));
+    button.append(img);
+    media.append(button);
   }
   fragment.querySelector('.caption').textContent = post.text;
   const time = fragment.querySelector('time');
@@ -103,6 +123,10 @@ search.addEventListener('keydown', event => {
 themeToggle.addEventListener('click', () => {
   theme = nextTheme(theme);
   applyTheme(theme, true);
+});
+lightboxClose.addEventListener('click', () => lightbox.close());
+lightbox.addEventListener('click', event => {
+  if (event.target === lightbox) lightbox.close();
 });
 window.addEventListener('resize', centerCollage, { passive: true });
 load();
