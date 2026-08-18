@@ -1,0 +1,171 @@
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DATA_PATH = path.join(ROOT, 'public/data/posts.json');
+const MEDIA_DIR = path.join(ROOT, 'public/media');
+const API = 'https://discord.com/api/v10';
+
+function imageExtension(filename = '', contentType = '', url = '') {
+  const fromName = path.extname(filename).toLowerCase().replace(/[^.a-z0-9]/g, '');
+  if (/^\.(avif|gif|jpe?g|png|webp)$/.test(fromName)) return fromName === '.jpeg' ? '.jpg' : fromName;
+  const types = { 'image/avif': '.avif', 'image/gif': '.gif', 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
+  if (types[contentType]) return types[contentType];
+  try {
+    const ext = path.extname(new URL(url).pathname).toLowerCase();
+    return /^\.(avif|gif|jpe?g|png|webp)$/.test(ext) ? (ext === '.jpeg' ? '.jpg' : ext) : '.jpg';
+  } catch { return '.jpg'; }
+}
+
+function collectImages(message, messageId) {
+  const images = [];
+  for (const attachment of message.attachments ?? []) {
+    const isImage = attachment.content_type?.startsWith('image/') || /\.(avif|gif|jpe?g|png|webp)$/i.test(attachment.filename ?? '');
+    if (!isImage || !attachment.url) continue;
+    const ext = imageExtension(attachment.filename, attachment.content_type, attachment.url);
+    images.push({ sourceUrl: attachment.url, filename: `${messageId}-${attachment.id}${ext}`, width: attachment.width, height: attachment.height });
+  }
+  for (const [index, embed] of (message.embeds ?? []).entries()) {
+    for (const candidate of [embed.image, embed.thumbnail]) {
+      if (!candidate?.url || images.some(image => image.sourceUrl === candidate.url)) continue;
+      const ext = imageExtension('', '', candidate.url);
+      images.push({ sourceUrl: candidate.url, filename: `${messageId}-embed-${index}-${images.length}${ext}`, width: candidate.width, height: candidate.height });
+    }
+  }
+  return images;
+}
+
+function cleanCaption(value = '') {
+  return value.replace(/https?:\/\/\S+/gi, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+export function extractPost(wrapper, { guildId, channelId, targetUserId }) {
+  if (wrapper.author?.id !== targetUserId) return null;
+  const snapshot = wrapper.message_reference?.type === 1 ? wrapper.message_snapshots?.[0]?.message : null;
+  const source = snapshot ?? wrapper;
+  const embedText = (source.embeds ?? [])
+    .flatMap(embed => [embed.title, embed.description])
+    .filter(Boolean)
+    .join('\n');
+  const text = cleanCaption((source.content ?? '').trim() || embedText.trim());
+  const images = collectImages(source, wrapper.id);
+  if (!text || images.length === 0) return null;
+  return {
+    id: wrapper.id,
+    text,
+    date: wrapper.timestamp,
+    url: `https://discord.com/channels/${guildId}/${channelId}/${wrapper.id}`,
+    images
+  };
+}
+
+export function mergePosts(existing, fresh) {
+  const byId = new Map(existing.map(post => [post.id, post]));
+  for (const post of fresh) byId.set(post.id, post);
+  return [...byId.values()].sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+}
+
+export async function discordRequest(url, token, fetcher = fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), attempt = 1) {
+  const response = await fetcher(url, {
+    headers: { Authorization: `Bot ${token}`, 'User-Agent': 'DiscordPhotoCollage/1.0' }
+  });
+  if (response.status === 429 && attempt < 6) {
+    const rateLimit = await response.json();
+    await sleep(Math.ceil((rateLimit.retry_after ?? 1) * 1000) + 100);
+    return discordRequest(url, token, fetcher, sleep, attempt + 1);
+  }
+  if (!response.ok) throw new Error(`Discord API ${response.status}: ${await response.text()}`);
+  return response.json();
+}
+
+async function discordPage(token, channelId, query) {
+  return discordRequest(`${API}/channels/${channelId}/messages?limit=100&${query}`, token);
+}
+
+async function fetchMessages(token, channelId, lastScannedId) {
+  const messages = [];
+  if (lastScannedId) {
+    let after = lastScannedId;
+    while (true) {
+      const page = await discordPage(token, channelId, `after=${after}`);
+      if (!page.length) break;
+      messages.push(...page);
+      const next = page.reduce((max, item) => BigInt(item.id) > BigInt(max) ? item.id : max, after);
+      if (next === after || page.length < 100) break;
+      after = next;
+    }
+  } else {
+    let before = '';
+    while (true) {
+      const page = await discordPage(token, channelId, before ? `before=${before}` : '');
+      if (!page.length) break;
+      messages.push(...page);
+      before = page.at(-1).id;
+      if (page.length < 100) break;
+    }
+  }
+  return messages;
+}
+
+async function downloadImage(image) {
+  await mkdir(MEDIA_DIR, { recursive: true });
+  const destination = path.join(MEDIA_DIR, image.filename);
+  try {
+    await readFile(destination);
+  } catch {
+    const response = await fetch(image.sourceUrl);
+    if (!response.ok) throw new Error(`Image download ${response.status}: ${image.sourceUrl}`);
+    await writeFile(destination, Buffer.from(await response.arrayBuffer()));
+  }
+  return { src: `media/${image.filename}`, width: image.width, height: image.height };
+}
+
+export async function materializePost(post, downloader = downloadImage, warn = console.warn) {
+  const images = [];
+  for (const image of post.images) {
+    try {
+      images.push(await downloader(image));
+    } catch (error) {
+      warn(`Skipping unavailable image ${image.filename}: ${error.message}`);
+    }
+  }
+  return images.length ? { ...post, images } : null;
+}
+
+async function main() {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+  const channelId = process.env.DISCORD_CHANNEL_ID;
+  const targetUserId = process.env.DISCORD_TARGET_USER_ID;
+  if (!token || !guildId || !channelId || !targetUserId) throw new Error('Missing required Discord environment variables');
+
+  let state = { updatedAt: null, lastScannedId: null, posts: [] };
+  try { state = { ...state, ...JSON.parse(await readFile(DATA_PATH, 'utf8')) }; } catch {}
+
+  const messages = await fetchMessages(token, channelId, state.lastScannedId);
+  if (messages.length === 0) {
+    console.log(`No messages newer than ${state.lastScannedId ?? 'the beginning'}; nothing to update.`);
+    return;
+  }
+  const extracted = messages.map(message => extractPost(message, { guildId, channelId, targetUserId })).filter(Boolean);
+  const materialized = [];
+  for (const post of extracted) {
+    const archived = await materializePost(post);
+    if (archived) materialized.push(archived);
+  }
+
+  const newestSeen = messages.reduce((max, message) => !max || BigInt(message.id) > BigInt(max) ? message.id : max, state.lastScannedId);
+  const output = {
+    updatedAt: new Date().toISOString(),
+    lastScannedId: newestSeen,
+    posts: mergePosts(state.posts, materialized)
+  };
+  await mkdir(path.dirname(DATA_PATH), { recursive: true });
+  await writeFile(DATA_PATH, `${JSON.stringify(output, null, 2)}\n`);
+  console.log(`Scanned ${messages.length} messages; added ${materialized.length}; total ${output.posts.length}.`);
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch(error => { console.error(error); process.exitCode = 1; });
+}

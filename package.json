@@ -1,0 +1,12 @@
+{
+  "name": "pepsi-cat-archive",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "test": "node --test",
+    "check": "node --check scripts/sync.mjs && node --check public/app.js"
+  },
+  "engines": { "node": ">=22" }
+}
