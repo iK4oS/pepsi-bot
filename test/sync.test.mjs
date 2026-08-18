@@ -48,6 +48,21 @@ test('extracts forwarded snapshots regardless of the forwarding wrapper author',
   assert.equal(extractPost(message, context).images[0].sourceUrl, 'https://media.discordapp.net/forwarded.png');
 });
 
+test('includes image-only forwards with a fallback title', () => {
+  const message = {
+    id: '1517532821604925672', channel_id: context.channelId,
+    author: { id: context.targetUserId }, timestamp: '2026-06-19T14:13:39.067Z',
+    content: '', attachments: [], embeds: [], message_reference: { type: 1 },
+    message_snapshots: [{ message: {
+      content: '', embeds: [],
+      attachments: [{ id: '1517532821353136158', filename: 'image.png', content_type: 'image/png', url: 'https://cdn.discordapp.com/image.png', width: 807, height: 1000 }]
+    }}]
+  };
+  const post = extractPost(message, context);
+  assert.equal(post.text, 'Forwarded post');
+  assert.equal(post.images.length, 1);
+});
+
 test('requires both text and at least one image and rejects other authors', () => {
   const base = { id: '202', channel_id: context.channelId, author: { id: context.targetUserId }, timestamp: '2026-08-18T10:00:00Z', content: 'text', attachments: [], embeds: [] };
   assert.equal(extractPost(base, context), null);

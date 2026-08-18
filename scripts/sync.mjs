@@ -49,8 +49,9 @@ export function extractPost(wrapper, { guildId, channelId, targetUserId }) {
     .flatMap(embed => [embed.title, embed.description])
     .filter(Boolean)
     .join('\n');
-  const text = cleanCaption((source.content ?? '').trim() || embedText.trim());
+  let text = cleanCaption((source.content ?? '').trim() || embedText.trim());
   const images = collectImages(source, wrapper.id);
+  if (!text && isForward && images.length) text = 'Forwarded post';
   if (!text || images.length === 0) return null;
   return {
     id: wrapper.id,
