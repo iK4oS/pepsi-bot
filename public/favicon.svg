@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Pepsi logo">
+  <defs><clipPath id="c"><circle cx="32" cy="32" r="29"/></clipPath></defs>
+  <g clip-path="url(#c)">
+    <rect width="64" height="64" fill="#0065bd"/>
+    <path d="M0 0h64v24C48 33 31 19 0 34Z" fill="#e32934"/>
+    <path d="M0 34c31-15 48-1 64-10v9C45 43 28 28 0 43Z" fill="#fff"/>
+  </g>
+  <circle cx="32" cy="32" r="29" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="2"/>
+</svg>

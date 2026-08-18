@@ -23,6 +23,7 @@ test('extracts text, date, link, and image attachments from a target-user messag
     id: '200',
     text: 'A quiet morning',
     date: '2026-08-18T08:00:00.000Z',
+    channelId: '1156474286303891486',
     url: 'https://discord.com/channels/828022955875368981/1156474286303891486/200',
     images: [{ sourceUrl: 'https://cdn.discordapp.com/a.jpg', filename: '200-a1.jpg', width: 1200, height: 1600 }],
     videos: []

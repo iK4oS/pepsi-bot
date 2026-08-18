@@ -87,6 +87,7 @@ export function extractPost(wrapper, { guildId, channelId, targetUserId }) {
     id: wrapper.id,
     text,
     date: wrapper.timestamp,
+    channelId,
     url: `https://discord.com/channels/${guildId}/${channelId}/${wrapper.id}`,
     images,
     videos

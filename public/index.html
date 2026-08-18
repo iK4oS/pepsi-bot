@@ -24,15 +24,23 @@
   <meta name="twitter:image" content="https://pepsicat.photos/social-card.jpg">
   <meta name="twitter:image:alt" content="Pepsi Cat visual archive preview">
   <title>Pepsi Cat / Archive</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <script type="module" src="app.js"></script>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="/" aria-label="Pepsi Cat Archive home"><span aria-hidden="true"></span>Pepsi Cat <b>/ Archive</b></a>
+    <div class="brand-area">
+      <a class="brand" href="/" aria-label="Pepsi Cat home"><img src="/favicon.svg" alt=""><span class="brand-label">Pepsi Cat</span></a>
+      <nav class="section-nav" aria-label="Archive sections">
+        <a href="/" data-route="archive">/Archive</a>
+        <a href="/food" data-route="food">/Food</a>
+        <a href="/pets" data-route="pets">/Pets</a>
+      </nav>
+    </div>
     <div class="search" role="search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20.7 19.3-4.2-4.2a7 7 0 1 0-1.4 1.4l4.2 4.2a1 1 0 0 0 1.4-1.4ZM5 11a6 6 0 1 1 12 0 6 6 0 0 1-12 0Z"/></svg>
       <label class="visually-hidden" for="post-search">Search posts</label>
@@ -47,7 +55,7 @@
     </div>
   </header>
   <main>
-    <section id="collage" class="collage" aria-label="Photo posts"></section>
+    <section id="collage" class="collage" aria-label="Media posts"></section>
     <section id="empty" class="empty" hidden>
       <h1>No photographs yet.</h1>
       <p>New posts with text and visual media will appear here automatically.</p>

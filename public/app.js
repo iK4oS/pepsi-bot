@@ -1,4 +1,5 @@
 import { centeredColumnCount } from './layout.js';
+import { filterPostsForRoute, routeName } from './filters.js';
 import { lightboxPayload, shouldCloseFromTarget } from './lightbox.js';
 import { matchesPost } from './search.js';
 import { initialTheme, nextTheme } from './theme.js';
@@ -14,10 +15,20 @@ const lightboxCaption = lightbox.querySelector('figcaption');
 const lightboxFigure = lightbox.querySelector('figure');
 const lightboxClose = lightbox.querySelector('.lightbox-close');
 const template = document.querySelector('#post-template');
+const activeRoute = routeName(window.location.pathname);
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 let allPosts = [];
 let postCount = 0;
+
+for (const link of document.querySelectorAll('.section-nav a')) {
+  if (link.dataset.route === activeRoute) link.setAttribute('aria-current', 'page');
+}
+document.title = `Pepsi Cat / ${activeRoute[0].toUpperCase()}${activeRoute.slice(1)}`;
+
+function assetPath(src) {
+  return src.startsWith('/') ? src : `/${src}`;
+}
 
 function readSavedTheme() {
   try { return localStorage.getItem('theme'); } catch { return null; }
@@ -43,7 +54,7 @@ function centerCollage() {
 
 function openLightbox(post, index) {
   const payload = lightboxPayload(post, index);
-  lightboxImage.src = payload.src;
+  lightboxImage.src = assetPath(payload.src);
   lightboxImage.alt = payload.alt;
   lightboxCaption.textContent = payload.caption;
   lightbox.showModal();
@@ -60,7 +71,7 @@ function renderPost(post) {
     button.type = 'button';
     button.className = 'image-button';
     const img = document.createElement('img');
-    img.src = image.src;
+    img.src = assetPath(image.src);
     const payload = lightboxPayload(post, index);
     img.alt = payload.alt;
     img.loading = 'lazy';
@@ -74,7 +85,7 @@ function renderPost(post) {
   }
   for (const [index, item] of (post.videos ?? []).entries()) {
     const video = document.createElement('video');
-    video.src = item.src;
+    video.src = assetPath(item.src);
     video.controls = true;
     video.preload = 'metadata';
     video.playsInline = true;
@@ -93,7 +104,8 @@ function renderPost(post) {
 }
 
 function renderResults(query = '') {
-  const filtered = allPosts.filter(post => matchesPost(post, query));
+  const scoped = filterPostsForRoute(allPosts, window.location.pathname);
+  const filtered = scoped.filter(post => matchesPost(post, query));
   collage.replaceChildren();
   postCount = filtered.length;
   centerCollage();
@@ -106,13 +118,13 @@ function renderResults(query = '') {
     ? 'Try another message ID or title.'
     : 'New posts with text and visual media will appear here automatically.';
   status.textContent = searching
-    ? `${filtered.length} of ${allPosts.length} posts`
-    : `${allPosts.length} ${allPosts.length === 1 ? 'post' : 'posts'}`;
+    ? `${filtered.length} of ${scoped.length} posts`
+    : `${scoped.length} ${scoped.length === 1 ? 'post' : 'posts'}`;
 }
 
 async function load() {
   try {
-    const response = await fetch('data/posts.json', { cache: 'no-cache' });
+    const response = await fetch('/data/posts.json', { cache: 'no-cache' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     allPosts = data.posts;
