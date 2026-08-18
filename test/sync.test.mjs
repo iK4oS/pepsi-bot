@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { discordRequest, extractPost, materializePost, mergePosts, scanCursor } from '../scripts/sync.mjs';
+import { channelCursor, discordRequest, extractPost, materializePost, mergePosts, scanCursor } from '../scripts/sync.mjs';
 
 const context = {
   guildId: '828022955875368981',
@@ -24,8 +24,36 @@ test('extracts text, date, link, and image attachments from a target-user messag
     text: 'A quiet morning',
     date: '2026-08-18T08:00:00.000Z',
     url: 'https://discord.com/channels/828022955875368981/1156474286303891486/200',
-    images: [{ sourceUrl: 'https://cdn.discordapp.com/a.jpg', filename: '200-a1.jpg', width: 1200, height: 1600 }]
+    images: [{ sourceUrl: 'https://cdn.discordapp.com/a.jpg', filename: '200-a1.jpg', width: 1200, height: 1600 }],
+    videos: []
   });
+});
+
+test('extracts browser-playable video attachments alongside images', () => {
+  const message = {
+    id: '206', channel_id: '1096355083823890452', author: { id: context.targetUserId },
+    timestamp: '2026-08-18T12:00:00Z', content: 'Moving Pepsi', embeds: [],
+    attachments: [
+      { id: 'v1', filename: 'clip.mp4', content_type: 'video/mp4', url: 'https://cdn/clip.mp4', size: 1234567, width: 1080, height: 1920 },
+      { id: 'i1', filename: 'still.webp', content_type: 'image/webp', url: 'https://cdn/still.webp', width: 800, height: 600 }
+    ]
+  };
+  const post = extractPost(message, { ...context, channelId: message.channel_id });
+  assert.equal(post.url, 'https://discord.com/channels/828022955875368981/1096355083823890452/206');
+  assert.deepEqual(post.videos, [{ sourceUrl: 'https://cdn/clip.mp4', filename: '206-v1.mp4', contentType: 'video/mp4', size: 1234567, width: 1080, height: 1920 }]);
+  assert.equal(post.images.length, 1);
+});
+
+test('includes video-only forwarded snapshots with fallback copy', () => {
+  const message = {
+    id: '207', channel_id: '1096355083823890452', author: { id: 'forwarder' }, timestamp: '2026-08-18T13:00:00Z',
+    content: '', attachments: [], embeds: [], message_snapshots: [{ message: { content: '', embeds: [], attachments: [
+      { id: 'v2', filename: 'forward.webm', content_type: 'video/webm', url: 'https://cdn/forward.webm', size: 5000 }
+    ] } }]
+  };
+  const post = extractPost(message, { ...context, channelId: message.channel_id });
+  assert.equal(post.text, 'Forwarded post');
+  assert.equal(post.videos.length, 1);
 });
 
 test('extracts forwarded snapshots regardless of the forwarding wrapper author', () => {
@@ -94,6 +122,14 @@ test('full sync ignores the saved incremental cursor', () => {
   assert.equal(scanCursor('123', true), null);
 });
 
+test('per-channel cursor migrates the original legacy cursor without skipping a new channel', () => {
+  const cursors = {};
+  assert.equal(channelCursor(cursors, context.channelId, context.channelId, '123', false), '123');
+  assert.equal(channelCursor(cursors, '1096355083823890452', context.channelId, '123', false), null);
+  assert.equal(channelCursor({ '1096355083823890452': '456' }, '1096355083823890452', context.channelId, '123', false), '456');
+  assert.equal(channelCursor(cursors, context.channelId, context.channelId, '123', true), null);
+});
+
 test('retries Discord rate limits using the server retry delay', async () => {
   let calls = 0;
   const waits = [];
@@ -117,6 +153,15 @@ test('skips unavailable images and drops a post only when none remain', async ()
   const silent = () => {};
   assert.deepEqual((await materializePost(post, downloader, silent)).images, [{ src: 'media/good.jpg' }]);
   assert.equal(await materializePost({ ...post, images: [{ filename: 'bad.jpg' }] }, downloader, silent), null);
+});
+
+test('archives videos and keeps a post when video is its only available media', async () => {
+  const post = { id: '208', text: 'video', images: [], videos: [{ filename: 'clip.mp4', contentType: 'video/mp4' }] };
+  const downloader = async media => ({ src: `media/${media.filename}`, contentType: media.contentType });
+  assert.deepEqual(await materializePost(post, downloader), {
+    ...post,
+    videos: [{ src: 'media/clip.mp4', contentType: 'video/mp4' }]
+  });
 });
 
 test('mergePosts deduplicates by id and sorts newest first', () => {

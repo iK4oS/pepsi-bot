@@ -53,7 +53,8 @@ function renderPost(post) {
   const fragment = template.content.cloneNode(true);
   const article = fragment.querySelector('.post');
   const media = fragment.querySelector('.media');
-  if (post.images.length > 1) media.classList.add('multi');
+  const mediaCount = post.images.length + (post.videos?.length ?? 0);
+  if (mediaCount > 1) media.classList.add('multi');
   for (const [index, image] of post.images.entries()) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -70,6 +71,17 @@ function renderPost(post) {
     button.addEventListener('click', () => openLightbox(post, index));
     button.append(img);
     media.append(button);
+  }
+  for (const [index, item] of (post.videos ?? []).entries()) {
+    const video = document.createElement('video');
+    video.src = item.src;
+    video.controls = true;
+    video.preload = 'metadata';
+    video.playsInline = true;
+    video.setAttribute('aria-label', `${post.text} — video ${index + 1} of ${post.videos.length}`);
+    if (item.width) video.width = item.width;
+    if (item.height) video.height = item.height;
+    media.append(video);
   }
   fragment.querySelector('.caption').textContent = post.text;
   const time = fragment.querySelector('time');
@@ -92,7 +104,7 @@ function renderResults(query = '') {
   empty.querySelector('h1').textContent = searching ? 'No matching posts.' : 'No photographs yet.';
   empty.querySelector('p').textContent = searching
     ? 'Try another message ID or title.'
-    : 'New posts with both text and images will appear here automatically.';
+    : 'New posts with text and visual media will appear here automatically.';
   status.textContent = searching
     ? `${filtered.length} of ${allPosts.length} posts`
     : `${allPosts.length} ${allPosts.length === 1 ? 'post' : 'posts'}`;

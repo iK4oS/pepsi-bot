@@ -128,18 +128,23 @@ main { padding: 18px clamp(10px, 2vw, 32px) 64px; }
 .media { display: grid; gap: 2px; background: var(--line); }
 .image-button { display: block; width: 100%; padding: 0; border: 0; color: inherit; background: transparent; cursor: zoom-in; }
 .image-button:focus-visible { position: relative; z-index: 1; outline: 3px solid var(--focus); outline-offset: -3px; }
-.media img {
+.media img,
+.media video {
   display: block;
   width: 100%;
   height: auto;
-  min-height: 120px;
+  max-height: 620px;
   background: var(--line);
   object-fit: cover;
 }
+.media video { min-height: 180px; }
 .media.multi { grid-template-columns: repeat(2, 1fr); }
-.media.multi .image-button img { height: 210px; }
-.media.multi .image-button:first-child:nth-last-child(odd) { grid-column: 1 / -1; }
-.media.multi .image-button:first-child:nth-last-child(odd) img { height: auto; max-height: 420px; }
+.media.multi > * { min-width: 0; }
+.media.multi img,
+.media.multi video { height: 210px; }
+.media.multi > :first-child:nth-last-child(odd) { grid-column: 1 / -1; }
+.media.multi > .image-button:first-child:nth-last-child(odd) img,
+.media.multi > video:first-child:nth-last-child(odd) { height: auto; max-height: 420px; }
 .post-copy { padding: 14px 15px 12px; }
 .caption { margin: 0; font-size: 15px; line-height: 1.42; white-space: pre-wrap; overflow-wrap: anywhere; }
 .post footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }

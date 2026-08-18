@@ -31,12 +31,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm test
-      - name: Fetch new Discord posts and archive their images
+      - name: Fetch new Discord posts and archive their media
         run: npm run sync
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: "828022955875368981"
           DISCORD_CHANNEL_ID: "1156474286303891486"
+          DISCORD_CHANNEL_IDS: "1156474286303891486,1096355083823890452"
           DISCORD_TARGET_USER_ID: "673196202870833164"
           FULL_SYNC: ${{ inputs.full_sync || 'false' }}
       - name: Commit new content

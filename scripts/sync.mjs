@@ -18,6 +18,17 @@ function imageExtension(filename = '', contentType = '', url = '') {
   } catch { return '.jpg'; }
 }
 
+function videoExtension(filename = '', contentType = '', url = '') {
+  const fromName = path.extname(filename).toLowerCase().replace(/[^.a-z0-9]/g, '');
+  if (/^\.(m4v|mov|mp4|ogv|webm)$/.test(fromName)) return fromName;
+  const types = { 'video/mp4': '.mp4', 'video/quicktime': '.mov', 'video/ogg': '.ogv', 'video/webm': '.webm' };
+  if (types[contentType]) return types[contentType];
+  try {
+    const ext = path.extname(new URL(url).pathname).toLowerCase();
+    return /^\.(m4v|mov|mp4|ogv|webm)$/.test(ext) ? ext : '.mp4';
+  } catch { return '.mp4'; }
+}
+
 function collectImages(message, messageId) {
   const images = [];
   for (const attachment of message.attachments ?? []) {
@@ -36,6 +47,24 @@ function collectImages(message, messageId) {
   return images;
 }
 
+function collectVideos(message, messageId) {
+  const videos = [];
+  for (const attachment of message.attachments ?? []) {
+    const isVideo = attachment.content_type?.startsWith('video/') || /\.(m4v|mov|mp4|ogv|webm)$/i.test(attachment.filename ?? '');
+    if (!isVideo || !attachment.url) continue;
+    const ext = videoExtension(attachment.filename, attachment.content_type, attachment.url);
+    videos.push({
+      sourceUrl: attachment.url,
+      filename: `${messageId}-${attachment.id}${ext}`,
+      contentType: attachment.content_type || (ext === '.webm' ? 'video/webm' : 'video/mp4'),
+      size: attachment.size,
+      width: attachment.width,
+      height: attachment.height
+    });
+  }
+  return videos;
+}
+
 function cleanCaption(value = '') {
   return value.replace(/https?:\/\/\S+/gi, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
@@ -51,14 +80,16 @@ export function extractPost(wrapper, { guildId, channelId, targetUserId }) {
     .join('\n');
   let text = cleanCaption((source.content ?? '').trim() || embedText.trim());
   const images = collectImages(source, wrapper.id);
-  if (!text && isForward && images.length) text = 'Forwarded post';
-  if (!text || images.length === 0) return null;
+  const videos = collectVideos(source, wrapper.id);
+  if (!text && isForward && (images.length || videos.length)) text = 'Forwarded post';
+  if (!text || (images.length === 0 && videos.length === 0)) return null;
   return {
     id: wrapper.id,
     text,
     date: wrapper.timestamp,
     url: `https://discord.com/channels/${guildId}/${channelId}/${wrapper.id}`,
-    images
+    images,
+    videos
   };
 }
 
@@ -70,6 +101,11 @@ export function mergePosts(existing, fresh) {
 
 export function scanCursor(savedCursor, fullSync = false) {
   return fullSync ? null : savedCursor;
+}
+
+export function channelCursor(savedCursors, channelId, legacyChannelId, legacyCursor, fullSync = false) {
+  if (fullSync) return null;
+  return savedCursors?.[channelId] ?? (channelId === legacyChannelId ? legacyCursor : null);
 }
 
 export async function discordRequest(url, token, fetcher = fetch, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), attempt = 1) {
@@ -114,20 +150,25 @@ async function fetchMessages(token, channelId, lastScannedId) {
   return messages;
 }
 
-async function downloadImage(image) {
+async function downloadMedia(media) {
   await mkdir(MEDIA_DIR, { recursive: true });
-  const destination = path.join(MEDIA_DIR, image.filename);
+  const destination = path.join(MEDIA_DIR, media.filename);
   try {
     await readFile(destination);
   } catch {
-    const response = await fetch(image.sourceUrl);
-    if (!response.ok) throw new Error(`Image download ${response.status}: ${image.sourceUrl}`);
+    const response = await fetch(media.sourceUrl);
+    if (!response.ok) throw new Error(`Media download ${response.status}: ${media.sourceUrl}`);
     await writeFile(destination, Buffer.from(await response.arrayBuffer()));
   }
-  return { src: `media/${image.filename}`, width: image.width, height: image.height };
+  return {
+    src: `media/${media.filename}`,
+    width: media.width,
+    height: media.height,
+    ...(media.contentType ? { contentType: media.contentType } : {})
+  };
 }
 
-export async function materializePost(post, downloader = downloadImage, warn = console.warn) {
+export async function materializePost(post, downloader = downloadMedia, warn = console.warn) {
   const images = [];
   for (const image of post.images) {
     try {
@@ -136,45 +177,74 @@ export async function materializePost(post, downloader = downloadImage, warn = c
       warn(`Skipping unavailable image ${image.filename}: ${error.message}`);
     }
   }
-  return images.length ? { ...post, images } : null;
+  const videos = [];
+  for (const video of post.videos ?? []) {
+    try {
+      videos.push(await downloader(video));
+    } catch (error) {
+      warn(`Skipping unavailable video ${video.filename}: ${error.message}`);
+    }
+  }
+  return images.length || videos.length ? { ...post, images, videos } : null;
 }
 
 async function main() {
   const token = process.env.DISCORD_BOT_TOKEN;
   const guildId = process.env.DISCORD_GUILD_ID;
-  const channelId = process.env.DISCORD_CHANNEL_ID;
+  const configuredChannels = process.env.DISCORD_CHANNEL_IDS || process.env.DISCORD_CHANNEL_ID;
+  const channelIds = [...new Set((configuredChannels ?? '').split(',').map(value => value.trim()).filter(Boolean))];
+  const legacyChannelId = process.env.DISCORD_CHANNEL_ID || channelIds[0];
   const targetUserId = process.env.DISCORD_TARGET_USER_ID;
-  if (!token || !guildId || !channelId || !targetUserId) throw new Error('Missing required Discord environment variables');
+  if (!token || !guildId || channelIds.length === 0 || !targetUserId) throw new Error('Missing required Discord environment variables');
 
-  let state = { updatedAt: null, lastScannedId: null, posts: [] };
+  let state = { updatedAt: null, lastScannedId: null, lastScannedIds: {}, posts: [] };
   try { state = { ...state, ...JSON.parse(await readFile(DATA_PATH, 'utf8')) }; } catch {}
 
   const fullSync = /^(1|true|yes)$/i.test(process.env.FULL_SYNC ?? '');
-  const cursor = scanCursor(state.lastScannedId, fullSync);
-  const messages = await fetchMessages(token, channelId, cursor);
-  if (messages.length === 0) {
-    console.log(`No messages newer than ${cursor ?? 'the beginning'}; nothing to update.`);
-    return;
-  }
-  const extracted = messages.map(message => extractPost(message, { guildId, channelId, targetUserId })).filter(Boolean);
-  const forwarded = messages.filter(message => message.message_snapshots?.length);
-  const eligibleForwards = forwarded.map(message => extractPost(message, { guildId, channelId, targetUserId })).filter(Boolean);
-  console.log(`Forward snapshots: ${forwarded.length}; with text and image: ${eligibleForwards.length}.`);
+  const lastScannedIds = { ...(state.lastScannedIds ?? {}) };
   const materialized = [];
-  for (const post of extracted) {
-    const archived = await materializePost(post);
-    if (archived) materialized.push(archived);
+  let totalMessages = 0;
+
+  for (const channelId of channelIds) {
+    const cursor = channelCursor(lastScannedIds, channelId, legacyChannelId, state.lastScannedId, fullSync);
+    const messages = await fetchMessages(token, channelId, cursor);
+    totalMessages += messages.length;
+    if (messages.length === 0) {
+      console.log(`Channel ${channelId}: no messages newer than ${cursor ?? 'the beginning'}.`);
+      continue;
+    }
+
+    const context = { guildId, channelId, targetUserId };
+    const extracted = messages.map(message => extractPost(message, context)).filter(Boolean);
+    const forwarded = messages.filter(message => message.message_snapshots?.length);
+    const eligibleForwards = forwarded.map(message => extractPost(message, context)).filter(Boolean);
+    const extractedVideos = extracted.reduce((count, post) => count + post.videos.length, 0);
+    console.log(`Channel ${channelId}: ${messages.length} messages; ${forwarded.length} forwards (${eligibleForwards.length} eligible); ${extractedVideos} videos.`);
+
+    for (const post of extracted) {
+      const archived = await materializePost(post);
+      if (archived) materialized.push(archived);
+    }
+
+    lastScannedIds[channelId] = messages.reduce(
+      (max, message) => !max || BigInt(message.id) > BigInt(max) ? message.id : max,
+      lastScannedIds[channelId] ?? (channelId === legacyChannelId ? state.lastScannedId : null)
+    );
   }
 
-  const newestSeen = messages.reduce((max, message) => !max || BigInt(message.id) > BigInt(max) ? message.id : max, state.lastScannedId);
+  if (totalMessages === 0) {
+    console.log('No new messages in any configured channel; nothing to update.');
+    return;
+  }
+
   const output = {
     updatedAt: new Date().toISOString(),
-    lastScannedId: newestSeen,
+    lastScannedIds,
     posts: mergePosts(state.posts, materialized)
   };
   await mkdir(path.dirname(DATA_PATH), { recursive: true });
   await writeFile(DATA_PATH, `${JSON.stringify(output, null, 2)}\n`);
-  console.log(`Scanned ${messages.length} messages; added ${materialized.length}; total ${output.posts.length}.`);
+  console.log(`Scanned ${totalMessages} messages across ${channelIds.length} channels; added ${materialized.length}; total ${output.posts.length}.`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
