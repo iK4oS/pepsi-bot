@@ -11,7 +11,7 @@ test('header exposes scoped archive links and a Pepsi favicon', async () => {
 
 test('route shells stay identical to the main archive page', async () => {
   const root = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
-  for (const route of ['archive', 'food', 'pets']) {
+  for (const route of ['archive', 'Archive', 'food', 'pets']) {
     assert.equal(await readFile(new URL(`../public/${route}.html`, import.meta.url), 'utf8'), root);
   }
 });
