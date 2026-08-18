@@ -1,0 +1,25 @@
+name: Diagnose Discord message
+
+on:
+  workflow_dispatch:
+    inputs:
+      message_id:
+        description: "Discord message ID"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Print sanitized Discord message structure
+        run: node scripts/diagnose-message.mjs
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: "1156474286303891486"
+          DISCORD_MESSAGE_ID: ${{ inputs.message_id }}
