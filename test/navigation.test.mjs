@@ -9,6 +9,13 @@ test('header exposes scoped archive links and a Pepsi favicon', async () => {
   }
 });
 
+test('route shells stay identical to the main archive page', async () => {
+  const root = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
+  for (const route of ['archive', 'food', 'pets']) {
+    assert.equal(await readFile(new URL(`../public/${route}.html`, import.meta.url), 'utf8'), root);
+  }
+});
+
 test('fullscreen videos use contain sizing', async () => {
   const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
   assert.match(css, /video:fullscreen[\s\S]*?object-fit:\s*contain/);
