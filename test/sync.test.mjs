@@ -66,6 +66,7 @@ test('extracts forwarded snapshots regardless of the forwarding wrapper author',
     timestamp: '2026-08-18T09:00:00.000Z',
     attachments: [],
     embeds: [],
+    message_reference: { type: 1, guild_id: context.guildId, channel_id: '1131897266832162857', message_id: '199' },
     message_snapshots: [{ message: {
       content: 'Forwarded caption',
       attachments: [],
@@ -75,6 +76,18 @@ test('extracts forwarded snapshots regardless of the forwarding wrapper author',
 
   assert.equal(extractPost(message, context).text, 'Forwarded caption');
   assert.equal(extractPost(message, context).images[0].sourceUrl, 'https://media.discordapp.net/forwarded.png');
+  assert.equal(extractPost(message, context).url, 'https://discord.com/channels/828022955875368981/1131897266832162857/199');
+});
+
+test('forward links fall back to the wrapper when Discord omits the source reference', () => {
+  const message = {
+    id: '209', channel_id: context.channelId, author: { id: 'forwarder' }, timestamp: '2026-08-18T09:00:00Z',
+    content: '', attachments: [], embeds: [], message_snapshots: [{ message: {
+      content: 'Forwarded without a reference', embeds: [],
+      attachments: [{ id: 'a', filename: 'x.jpg', content_type: 'image/jpeg', url: 'https://cdn/x.jpg' }]
+    }}]
+  };
+  assert.equal(extractPost(message, context).url, `https://discord.com/channels/${context.guildId}/${context.channelId}/209`);
 });
 
 test('includes image-only forwards with a fallback title', () => {

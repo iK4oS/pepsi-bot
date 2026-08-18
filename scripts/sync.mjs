@@ -83,12 +83,16 @@ export function extractPost(wrapper, { guildId, channelId, targetUserId }) {
   const videos = collectVideos(source, wrapper.id);
   if (!text && isForward && (images.length || videos.length)) text = 'Forwarded post';
   if (!text || (images.length === 0 && videos.length === 0)) return null;
+  const reference = isForward ? wrapper.message_reference : null;
+  const linkGuildId = reference?.guild_id || guildId;
+  const linkChannelId = reference?.channel_id || channelId;
+  const linkMessageId = reference?.message_id || wrapper.id;
   return {
     id: wrapper.id,
     text,
     date: wrapper.timestamp,
     channelId,
-    url: `https://discord.com/channels/${guildId}/${channelId}/${wrapper.id}`,
+    url: `https://discord.com/channels/${linkGuildId}/${linkChannelId}/${linkMessageId}`,
     images,
     videos
   };

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       full_sync:
-        description: "Rescan the complete channel backlog"
+        description: "Rescan the complete backlog across every configured channel"
         required: false
         type: boolean
         default: false
