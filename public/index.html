@@ -20,7 +20,13 @@
       <label class="visually-hidden" for="post-search">Search posts</label>
       <input id="post-search" type="search" inputmode="search" autocomplete="off" placeholder="Search message ID or title…">
     </div>
-    <p id="status" role="status" aria-live="polite">Loading photographs…</p>
+    <div class="header-actions">
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to light theme" aria-pressed="false">
+        <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0-5a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 17a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1ZM2 12a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm17 0a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1ZM4.2 4.2a1 1 0 0 1 1.4 0L7 5.6A1 1 0 1 1 5.6 7L4.2 5.6a1 1 0 0 1 0-1.4Zm12.4 12.4a1 1 0 0 1 1.4 0l1.4 1.4a1 1 0 0 1-1.4 1.4L16.6 18a1 1 0 0 1 0-1.4Zm2.8-12.4a1 1 0 0 1 0 1.4L18 7a1 1 0 0 1-1.4-1.4L18 4.2a1 1 0 0 1 1.4 0ZM7 16.6A1 1 0 0 1 7 18l-1.4 1.4A1 1 0 0 1 4.2 18l1.4-1.4a1 1 0 0 1 1.4 0Z"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.7 15.3a8 8 0 0 1-10-10 1 1 0 0 0-1.2-1.2A9 9 0 1 0 21.9 16.5a1 1 0 0 0-1.2-1.2ZM12 20a7 7 0 0 1-4-12.7A10 10 0 0 0 16.7 16 7 7 0 0 1 12 20Z"/></svg>
+      </button>
+      <p id="status" role="status" aria-live="polite">Loading photographs…</p>
+    </div>
   </header>
   <main>
     <section id="collage" class="collage" aria-label="Photo posts"></section>
