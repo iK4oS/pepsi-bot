@@ -25,7 +25,7 @@ test('extracts text, date, link, and image attachments from a target-user messag
     date: '2026-08-18T08:00:00.000Z',
     channelId: '1156474286303891486',
     url: 'https://discord.com/channels/731881028573986874/1156474286303891486/200',
-    images: [{ sourceUrl: 'https://cdn.discordapp.com/a.jpg', filename: '200-a1.jpg', width: 1200, height: 1600 }],
+    images: [{ sourceUrl: 'https://cdn.discordapp.com/a.jpg', fallbackUrl: 'https://cdn.discordapp.com/a.jpg', filename: '200-a1.jpg', width: 1200, height: 1600 }],
     videos: []
   });
 });
@@ -41,7 +41,7 @@ test('extracts browser-playable video attachments alongside images', () => {
   };
   const post = extractPost(message, { ...context, channelId: message.channel_id });
   assert.equal(post.url, 'https://discord.com/channels/731881028573986874/1096355083823890452/206');
-  assert.deepEqual(post.videos, [{ sourceUrl: 'https://cdn/clip.mp4', filename: '206-v1.mp4', contentType: 'video/mp4', size: 1234567, width: 1080, height: 1920 }]);
+  assert.deepEqual(post.videos, [{ sourceUrl: 'https://cdn/clip.mp4', fallbackUrl: 'https://cdn/clip.mp4', filename: '206-v1.mp4', contentType: 'video/mp4', size: 1234567, width: 1080, height: 1920 }]);
   assert.equal(post.images.length, 1);
 });
 
@@ -170,12 +170,18 @@ test('skips unavailable images and drops a post only when none remain', async ()
 });
 
 test('archives videos and keeps a post when video is its only available media', async () => {
-  const post = { id: '208', text: 'video', images: [], videos: [{ filename: 'clip.mp4', contentType: 'video/mp4', sourceUrl: 'https://cdn.discordapp.com/clip.mp4' }] };
+  const post = { id: '208', text: 'video', images: [], videos: [{ filename: 'clip.mp4', contentType: 'video/mp4', sourceUrl: 'https://cdn.discordapp.com/clip.mp4', fallbackUrl: 'https://cdn.discordapp.com/clip.mp4' }] };
   const downloader = async media => ({ src: `media/${media.filename}`, contentType: media.contentType });
   assert.deepEqual(await materializePost(post, downloader), {
     ...post,
     videos: [{ src: 'media/clip.mp4', fallbackUrl: 'https://cdn.discordapp.com/clip.mp4', contentType: 'video/mp4' }]
   });
+});
+
+test('does not expose a non-Discord embed source as an attachment fallback', async () => {
+  const post = { id: '210', text: 'embed', images: [{ filename: 'embed.jpg', sourceUrl: 'https://media.graphassets.com/embed.jpg' }], videos: [] };
+  const downloader = async media => ({ src: `media/${media.filename}` });
+  assert.deepEqual((await materializePost(post, downloader)).images, [{ src: 'media/embed.jpg' }]);
 });
 
 test('mergePosts deduplicates by id and sorts newest first', () => {

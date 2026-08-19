@@ -34,7 +34,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm test
-      - name: Fetch Discord posts with archived media fallbacks
+      - name: Fetch Discord posts with attachment fallbacks
         run: npm run sync
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}

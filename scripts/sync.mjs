@@ -35,7 +35,7 @@ function collectImages(message, messageId) {
     const isImage = attachment.content_type?.startsWith('image/') || /\.(avif|gif|jpe?g|png|webp)$/i.test(attachment.filename ?? '');
     if (!isImage || !attachment.url) continue;
     const ext = imageExtension(attachment.filename, attachment.content_type, attachment.url);
-    images.push({ sourceUrl: attachment.url, filename: `${messageId}-${attachment.id}${ext}`, width: attachment.width, height: attachment.height });
+    images.push({ sourceUrl: attachment.url, fallbackUrl: attachment.url, filename: `${messageId}-${attachment.id}${ext}`, width: attachment.width, height: attachment.height });
   }
   for (const [index, embed] of (message.embeds ?? []).entries()) {
     for (const candidate of [embed.image, embed.thumbnail]) {
@@ -55,6 +55,7 @@ function collectVideos(message, messageId) {
     const ext = videoExtension(attachment.filename, attachment.content_type, attachment.url);
     videos.push({
       sourceUrl: attachment.url,
+      fallbackUrl: attachment.url,
       filename: `${messageId}-${attachment.id}${ext}`,
       contentType: attachment.content_type || (ext === '.webm' ? 'video/webm' : 'video/mp4'),
       size: attachment.size,
@@ -179,7 +180,7 @@ export async function materializePost(post, downloader = downloadMedia, warn = c
     try {
       images.push({
         ...await downloader(image),
-        ...(image.sourceUrl ? { fallbackUrl: image.sourceUrl } : {})
+        ...(image.fallbackUrl ? { fallbackUrl: image.fallbackUrl } : {})
       });
     } catch (error) {
       warn(`Skipping unavailable image ${image.filename}: ${error.message}`);
@@ -190,7 +191,7 @@ export async function materializePost(post, downloader = downloadMedia, warn = c
     try {
       videos.push({
         ...await downloader(video),
-        ...(video.sourceUrl ? { fallbackUrl: video.sourceUrl } : {})
+        ...(video.fallbackUrl ? { fallbackUrl: video.fallbackUrl } : {})
       });
     } catch (error) {
       warn(`Skipping unavailable video ${video.filename}: ${error.message}`);
