@@ -27,3 +27,9 @@ test('scheduled sync uses the archive guild ID', async () => {
   assert.match(workflow, /DISCORD_GUILD_ID:\s*["']731881028573986874["']/);
   assert.doesNotMatch(workflow, /828022955875368981/);
 });
+
+test('content security policy permits Discord attachment fallbacks', async () => {
+  const headers = await readFile(new URL('../public/_headers', import.meta.url), 'utf8');
+  assert.match(headers, /img-src[^;]*https:\/\/cdn\.discordapp\.com[^;]*https:\/\/media\.discordapp\.net/);
+  assert.match(headers, /media-src[^;]*https:\/\/cdn\.discordapp\.com[^;]*https:\/\/media\.discordapp\.net/);
+});

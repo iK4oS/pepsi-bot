@@ -177,7 +177,10 @@ export async function materializePost(post, downloader = downloadMedia, warn = c
   const images = [];
   for (const image of post.images) {
     try {
-      images.push(await downloader(image));
+      images.push({
+        ...await downloader(image),
+        ...(image.sourceUrl ? { fallbackUrl: image.sourceUrl } : {})
+      });
     } catch (error) {
       warn(`Skipping unavailable image ${image.filename}: ${error.message}`);
     }
@@ -185,7 +188,10 @@ export async function materializePost(post, downloader = downloadMedia, warn = c
   const videos = [];
   for (const video of post.videos ?? []) {
     try {
-      videos.push(await downloader(video));
+      videos.push({
+        ...await downloader(video),
+        ...(video.sourceUrl ? { fallbackUrl: video.sourceUrl } : {})
+      });
     } catch (error) {
       warn(`Skipping unavailable video ${video.filename}: ${error.message}`);
     }

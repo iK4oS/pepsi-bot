@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { lightboxPayload, shouldCloseFromTarget } from '../public/lightbox.js';
 
-test('lightbox uses the clicked image and post caption', () => {
-  const post = { text: 'A caption', images: [{ src: 'media/one.jpg' }, { src: 'media/two.jpg' }] };
+test('lightbox uses the clicked image, fallback, and post caption', () => {
+  const post = { text: 'A caption', images: [{ src: 'media/one.jpg' }, { src: 'media/two.jpg', fallbackUrl: 'https://cdn.discordapp.com/two.jpg' }] };
   assert.deepEqual(lightboxPayload(post, 1), {
     src: 'media/two.jpg',
+    fallbackUrl: 'https://cdn.discordapp.com/two.jpg',
     alt: 'A caption — image 2 of 2',
     caption: 'A caption'
   });

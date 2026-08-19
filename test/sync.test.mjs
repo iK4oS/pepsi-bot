@@ -170,11 +170,11 @@ test('skips unavailable images and drops a post only when none remain', async ()
 });
 
 test('archives videos and keeps a post when video is its only available media', async () => {
-  const post = { id: '208', text: 'video', images: [], videos: [{ filename: 'clip.mp4', contentType: 'video/mp4' }] };
+  const post = { id: '208', text: 'video', images: [], videos: [{ filename: 'clip.mp4', contentType: 'video/mp4', sourceUrl: 'https://cdn.discordapp.com/clip.mp4' }] };
   const downloader = async media => ({ src: `media/${media.filename}`, contentType: media.contentType });
   assert.deepEqual(await materializePost(post, downloader), {
     ...post,
-    videos: [{ src: 'media/clip.mp4', contentType: 'video/mp4' }]
+    videos: [{ src: 'media/clip.mp4', fallbackUrl: 'https://cdn.discordapp.com/clip.mp4', contentType: 'video/mp4' }]
   });
 });
 

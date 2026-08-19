@@ -1,6 +1,7 @@
 import { centeredColumnCount } from './layout.js';
 import { filterPostsForRoute, routeName } from './filters.js';
 import { lightboxPayload, shouldCloseFromTarget } from './lightbox.js';
+import { setMediaSource, useMediaFallback } from './media-fallback.js';
 import { matchesPost } from './search.js';
 import { initialTheme, nextTheme } from './theme.js';
 
@@ -54,7 +55,7 @@ function centerCollage() {
 
 function openLightbox(post, index) {
   const payload = lightboxPayload(post, index);
-  lightboxImage.src = assetPath(payload.src);
+  setMediaSource(lightboxImage, assetPath(payload.src), payload.fallbackUrl);
   lightboxImage.alt = payload.alt;
   lightboxCaption.textContent = payload.caption;
   lightbox.showModal();
@@ -71,7 +72,8 @@ function renderPost(post) {
     button.type = 'button';
     button.className = 'image-button';
     const img = document.createElement('img');
-    img.src = assetPath(image.src);
+    setMediaSource(img, assetPath(image.src), image.fallbackUrl);
+    img.addEventListener('error', () => useMediaFallback(img));
     const payload = lightboxPayload(post, index);
     img.alt = payload.alt;
     img.loading = 'lazy';
@@ -85,7 +87,8 @@ function renderPost(post) {
   }
   for (const [index, item] of (post.videos ?? []).entries()) {
     const video = document.createElement('video');
-    video.src = assetPath(item.src);
+    setMediaSource(video, assetPath(item.src), item.fallbackUrl);
+    video.addEventListener('error', () => useMediaFallback(video));
     video.controls = true;
     video.preload = 'metadata';
     video.playsInline = true;
@@ -150,6 +153,7 @@ themeToggle.addEventListener('click', () => {
   applyTheme(theme, true);
 });
 lightboxClose.addEventListener('click', () => lightbox.close());
+lightboxImage.addEventListener('error', () => useMediaFallback(lightboxImage));
 lightbox.addEventListener('click', event => {
   if (shouldCloseFromTarget(event.target, lightbox, lightboxFigure)) lightbox.close();
 });
