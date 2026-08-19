@@ -5,8 +5,8 @@ import { channelForRoute, filterPostsForRoute, postChannelId } from '../public/f
 const food = '1156474286303891486';
 const pets = '1096355083823890452';
 const posts = [
-  { id: '1', url: `https://discord.com/channels/828022955875368981/${food}/1` },
-  { id: '2', url: `https://discord.com/channels/828022955875368981/${pets}/2` }
+  { id: '1', url: `https://discord.com/channels/731881028573986874/${food}/1` },
+  { id: '2', url: `https://discord.com/channels/731881028573986874/${pets}/2` }
 ];
 
 test('archive routes show every channel', () => {

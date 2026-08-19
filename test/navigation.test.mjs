@@ -21,3 +21,9 @@ test('fullscreen videos use contain sizing', async () => {
   assert.match(css, /video:fullscreen[\s\S]*?object-fit:\s*contain/);
   assert.match(css, /video:-webkit-full-screen[\s\S]*?object-fit:\s*contain/);
 });
+
+test('scheduled sync uses the archive guild ID', async () => {
+  const workflow = await readFile(new URL('../.github/workflows/sync.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /DISCORD_GUILD_ID:\s*["']731881028573986874["']/);
+  assert.doesNotMatch(workflow, /828022955875368981/);
+});

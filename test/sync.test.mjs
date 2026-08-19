@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { channelCursor, discordRequest, extractPost, materializePost, mergePosts, scanCursor } from '../scripts/sync.mjs';
 
 const context = {
-  guildId: '828022955875368981',
+  guildId: '731881028573986874',
   channelId: '1156474286303891486',
   targetUserId: '673196202870833164'
 };
@@ -24,7 +24,7 @@ test('extracts text, date, link, and image attachments from a target-user messag
     text: 'A quiet morning',
     date: '2026-08-18T08:00:00.000Z',
     channelId: '1156474286303891486',
-    url: 'https://discord.com/channels/828022955875368981/1156474286303891486/200',
+    url: 'https://discord.com/channels/731881028573986874/1156474286303891486/200',
     images: [{ sourceUrl: 'https://cdn.discordapp.com/a.jpg', filename: '200-a1.jpg', width: 1200, height: 1600 }],
     videos: []
   });
@@ -40,7 +40,7 @@ test('extracts browser-playable video attachments alongside images', () => {
     ]
   };
   const post = extractPost(message, { ...context, channelId: message.channel_id });
-  assert.equal(post.url, 'https://discord.com/channels/828022955875368981/1096355083823890452/206');
+  assert.equal(post.url, 'https://discord.com/channels/731881028573986874/1096355083823890452/206');
   assert.deepEqual(post.videos, [{ sourceUrl: 'https://cdn/clip.mp4', filename: '206-v1.mp4', contentType: 'video/mp4', size: 1234567, width: 1080, height: 1920 }]);
   assert.equal(post.images.length, 1);
 });
@@ -66,7 +66,7 @@ test('extracts forwarded snapshots regardless of the forwarding wrapper author',
     timestamp: '2026-08-18T09:00:00.000Z',
     attachments: [],
     embeds: [],
-    message_reference: { type: 1, guild_id: context.guildId, channel_id: '1131897266832162857', message_id: '199' },
+    message_reference: { type: 1, guild_id: '828022955875368981', channel_id: '1131897266832162857', message_id: '199' },
     message_snapshots: [{ message: {
       content: 'Forwarded caption',
       attachments: [],
@@ -76,7 +76,7 @@ test('extracts forwarded snapshots regardless of the forwarding wrapper author',
 
   assert.equal(extractPost(message, context).text, 'Forwarded caption');
   assert.equal(extractPost(message, context).images[0].sourceUrl, 'https://media.discordapp.net/forwarded.png');
-  assert.equal(extractPost(message, context).url, 'https://discord.com/channels/828022955875368981/1131897266832162857/199');
+  assert.equal(extractPost(message, context).url, 'https://discord.com/channels/731881028573986874/1131897266832162857/199');
 });
 
 test('forward links fall back to the wrapper when Discord omits the source reference', () => {
