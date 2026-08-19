@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-19T14:54:22.725Z",
+  "updatedAt": "2026-08-19T15:06:16.130Z",
   "lastScannedIds": {
     "1156474286303891486": "1539525948498649170",
     "1096355083823890452": "1535902891024580618"
@@ -462,7 +462,7 @@
           "src": "media/1475508459586719806-1475508459372937259.jpg",
           "width": 3000,
           "height": 4000,
-          "fallbackUrl": "https://cdn.discordapp.com/attachments/1156474286303891486/1475508459372937259/20260223_160321.jpg?ex=6a866e96&is=6a851d16&hm=20842b15881a5d1fd681f48e87250f86dd6be9dc9d9d6fb5548cde313f67eb69&"
+          "fallbackUrl": "https://cdn.discordapp.com/attachments/1156474286303891486/1475508459372937259/20260223_160321.jpg?ex=6a871756&is=6a85c5d6&hm=7e6616e021e4bfc8b06838aa2e9cbad21a9aa54cedbb63cf868e00e92dcd445a&"
         }
       ],
       "videos": []
@@ -541,8 +541,7 @@
         {
           "src": "media/1372230243057795154-embed-0-0.jpg",
           "width": 3000,
-          "height": 4000,
-          "fallbackUrl": "https://cdn.discordapp.com/attachments/1131897266832162857/1372229807978582067/20250514_170759.jpg?ex=6a867059&is=6a851ed9&hm=cbc925326ab7740c79f5811ea7bb9d2abf2eaf8823ac85fc23fe5044a552f6b1&"
+          "height": 4000
         }
       ],
       "videos": []
@@ -1079,8 +1078,7 @@
         {
           "src": "media/1229702480636416060-embed-0-0.jpg",
           "width": 466,
-          "height": 500,
-          "fallbackUrl": "https://media.graphassets.com/GmFEkP1pTryK15qLIXl4"
+          "height": 500
         }
       ],
       "videos": []
@@ -1288,8 +1286,7 @@
         {
           "src": "media/1184060936202494012-embed-0-0.jpg",
           "width": 3000,
-          "height": 4000,
-          "fallbackUrl": "https://cdn.discordapp.com/attachments/1136627434700152833/1184060259870982236/20231212_101132.jpg?ex=6a86c50c&is=6a85738c&hm=c8d62c553247ba4e92b314a23ee71dabe831dfae4bf598b2945d036ca6e3bd9a&"
+          "height": 4000
         }
       ],
       "videos": []
@@ -1391,7 +1388,7 @@
           "src": "media/1171462644469878785-1171462644339851294.jpg",
           "width": 3000,
           "height": 4000,
-          "fallbackUrl": "https://cdn.discordapp.com/attachments/1156474286303891486/1171462644339851294/20231107_154925.jpg?ex=6a866c5b&is=6a851adb&hm=838f4ac8607dd09f687e8ebaebbca5fc221be770fdb0f9f82f8b129d7a35b5b6&"
+          "fallbackUrl": "https://cdn.discordapp.com/attachments/1156474286303891486/1171462644339851294/20231107_154925.jpg?ex=6a87151b&is=6a85c39b&hm=455273245553bbd87d965d6a91b7397dad6ca90b891d7168304d5ac01cc20b7f&"
         }
       ],
       "videos": []
