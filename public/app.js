@@ -131,7 +131,7 @@ function renderResults(query = '') {
   empty.querySelector('h1').textContent = searching ? 'No matching posts.' : 'No photographs yet.';
   empty.querySelector('p').textContent = searching
     ? 'Try another message ID or title.'
-    : 'New posts with text and visual media will appear here automatically.';
+    : 'New visual posts will appear here automatically.';
   status.textContent = searching
     ? `${filtered.length} of ${scoped.length} posts`
     : `${scoped.length} ${scoped.length === 1 ? 'post' : 'posts'}`;
