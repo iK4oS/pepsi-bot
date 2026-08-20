@@ -37,9 +37,12 @@ test('footer credits Pepsi Cat and exposes a linked build revision', async () =>
   const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
   assert.match(index, /<footer class="site-footer"/);
   assert.match(index, /Pepsi Cat \/ Nikolas/);
-  assert.match(index, /id="build-revision"/);
+  assert.match(index, /<a id="build-revision"[^>]*>latest main<\/a><span id="build-date"><\/span>/);
+  assert.doesNotMatch(index, /<a id="build-revision"[^>]*>[^<]*@/);
   assert.match(app, /BUILD_INFO_URL/);
   assert.match(app, /buildInfoPayload/);
+  assert.match(app, /buildRevision\.textContent = payload\.revisionLabel/);
+  assert.match(app, /buildDate\.textContent = ` \$\{payload\.dateLabel\}`/);
   assert.match(await readFile(new URL('../public/build-info.js', import.meta.url), 'utf8'), /BUILD_INFO_URL = '\/build-info\.json'/);
 });
 

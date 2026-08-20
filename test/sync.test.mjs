@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { channelCursor, discordRequest, extractPost, materializePost, mergePosts, scanCursor } from '../scripts/sync.mjs';
+import { MATERIALIZATION_INCOMPLETE, channelCursor, discordRequest, extractPost, materializePost, mergePosts, reconcilePosts, resolveMaterializedPost, scanCursor, shouldWriteSync } from '../scripts/sync.mjs';
 
 const context = {
   guildId: '731881028573986874',
@@ -53,7 +53,7 @@ test('includes video-only forwarded snapshots with fallback copy', () => {
     ] } }]
   };
   const post = extractPost(message, { ...context, channelId: message.channel_id });
-  assert.equal(post.text, 'Forwarded post');
+  assert.equal(post.text, 'Forwarded Post');
   assert.equal(post.videos.length, 1);
 });
 
@@ -101,14 +101,14 @@ test('includes image-only forwards with a fallback title', () => {
     }}]
   };
   const post = extractPost(message, context);
-  assert.equal(post.text, 'Forwarded post');
+  assert.equal(post.text, 'Forwarded Post');
   assert.equal(post.images.length, 1);
 });
 
 test('includes textless visual posts and rejects text-only or other-author posts', () => {
   const base = { id: '202', channel_id: context.channelId, author: { id: context.targetUserId }, timestamp: '2026-08-18T10:00:00Z', content: 'text', attachments: [], embeds: [] };
   assert.equal(extractPost(base, context), null);
-  assert.equal(extractPost({ ...base, content: '', attachments: [{ id: 'a', filename: 'x.png', content_type: 'image/png', url: 'https://cdn/x.png' }] }, context).text, 'Untitled post');
+  assert.equal(extractPost({ ...base, content: '', attachments: [{ id: 'a', filename: 'x.png', content_type: 'image/png', url: 'https://cdn/x.png' }] }, context).text, 'Untitled Post');
   assert.equal(extractPost({ ...base, author: { id: 'someone-else' }, attachments: [{ id: 'a', filename: 'x.png', content_type: 'image/png', url: 'https://cdn/x.png' }] }, context), null);
 });
 
@@ -121,13 +121,29 @@ test('uses embed copy when the message body is empty', () => {
   assert.equal(extractPost(message, context).text, 'A title\nEmbed caption');
 });
 
+test('skips externally hosted GIF embeds but keeps uploaded GIF attachments', () => {
+  const base = {
+    id: '210', channel_id: context.channelId, author: { id: context.targetUserId },
+    timestamp: '2026-08-18T11:00:00Z', content: '',
+    attachments: [{ id: 'upload', filename: 'cat.gif', content_type: 'image/gif', url: 'https://cdn.discordapp.com/cat.gif', width: 320, height: 240 }],
+    embeds: [
+      { type: 'gifv', url: 'https://tenor.com/view/cat-123', thumbnail: { url: 'https://media.tenor.com/cat.webp', width: 498, height: 280 } },
+      { type: 'image', image: { url: 'https://media.giphy.com/cat.gif', width: 400, height: 300 } }
+    ]
+  };
+  const post = extractPost(base, context);
+  assert.equal(post.text, 'Untitled Post');
+  assert.deepEqual(post.images.map(image => image.filename), ['210-upload.gif']);
+  assert.equal(extractPost({ ...base, attachments: [], embeds: [base.embeds[0]] }, context), null);
+});
+
 test('uses fallback copy for URL-only captions and removes media URLs from real captions', () => {
   const base = {
     id: '205', channel_id: context.channelId, author: { id: context.targetUserId },
     timestamp: '2026-08-18T11:00:00Z', attachments: [],
     embeds: [{ image: { url: 'https://cdn/embed.jpg' } }]
   };
-  assert.equal(extractPost({ ...base, content: 'https://cdn.discordapp.com/photo.jpg' }, context).text, 'Untitled post');
+  assert.equal(extractPost({ ...base, content: 'https://cdn.discordapp.com/photo.jpg' }, context).text, 'Untitled Post');
   assert.equal(extractPost({ ...base, content: 'Dinner tonight\nhttps://cdn.discordapp.com/photo.jpg' }, context).text, 'Dinner tonight');
 });
 
@@ -165,7 +181,12 @@ test('skips unavailable images and drops a post only when none remain', async ()
     return { src: 'media/good.jpg' };
   };
   const silent = () => {};
-  assert.deepEqual((await materializePost(post, downloader, silent)).images, [{ src: 'media/good.jpg' }]);
+  const partial = await materializePost(post, downloader, silent);
+  assert.deepEqual(partial.images, [{ src: 'media/good.jpg' }]);
+  assert.equal(partial[MATERIALIZATION_INCOMPLETE], true);
+  const existing = { id: '204', text: 'caption', images: [{ src: 'media/bad.jpg' }, { src: 'media/good.jpg' }], videos: [] };
+  assert.equal(resolveMaterializedPost(existing, partial), existing);
+  assert.equal(resolveMaterializedPost(null, partial), partial);
   assert.equal(await materializePost({ ...post, images: [{ filename: 'bad.jpg' }] }, downloader, silent), null);
 });
 
@@ -188,4 +209,22 @@ test('mergePosts deduplicates by id and sorts newest first', () => {
   const old = [{ id: '1', date: '2026-01-01T00:00:00Z' }, { id: '2', date: '2026-02-01T00:00:00Z' }];
   const fresh = [{ id: '1', date: '2026-03-01T00:00:00Z' }, { id: '3', date: '2026-01-15T00:00:00Z' }];
   assert.deepEqual(mergePosts(old, fresh).map(post => post.id), ['1', '2', '3']);
+});
+
+test('full sync removes ineligible posts but retains eligible posts after transient archival failure', () => {
+  const existing = [
+    { id: 'stale-a', channelId: 'a', date: '2026-01-01T00:00:00Z' },
+    { id: 'keep-failed', channelId: 'b', date: '2026-01-02T00:00:00Z' },
+    { id: 'keep-c', channelId: 'c', date: '2026-01-03T00:00:00Z' }
+  ];
+  const fresh = [{ id: 'fresh-a', channelId: 'a', date: '2026-01-04T00:00:00Z' }];
+  const eligible = new Set(['fresh-a', 'keep-failed']);
+  assert.deepEqual(reconcilePosts(existing, fresh, ['a', 'b'], true, eligible).map(post => post.id), ['fresh-a', 'keep-c', 'keep-failed']);
+  assert.deepEqual(reconcilePosts(existing, fresh, ['a', 'b'], false, eligible).map(post => post.id), ['fresh-a', 'keep-c', 'keep-failed', 'stale-a']);
+});
+
+test('full sync writes reconciled state even when all scanned channels are empty', () => {
+  assert.equal(shouldWriteSync(0, false), false);
+  assert.equal(shouldWriteSync(0, true), true);
+  assert.equal(shouldWriteSync(1, false), true);
 });

@@ -24,11 +24,11 @@ A direct Discord message is included when:
 - its author matches `DISCORD_TARGET_USER_ID`; and
 - it contains at least one supported image or video.
 
-Text is optional. Direct visual posts without meaningful text use **“Untitled post”** as their caption. URL-only captions are cleaned and receive the same fallback. Textless forwarded snapshots use **“Forwarded post”**.
+Text is optional. Direct visual posts without meaningful text use **“Untitled Post”** as their caption. URL-only captions are cleaned and receive the same fallback. Textless forwarded snapshots use **“Forwarded Post”**.
 
 Forwarded snapshots are read from the configured archive channels even when Discord exposes a different wrapper author. When Discord provides a source reference, its channel/message pair is preserved under the configured archive guild. The configured guild remains authoritative because forwarded metadata can carry stale or unrelated guild IDs. Without a source reference, the archive links honestly to the forwarding wrapper.
 
-Ingestion accepts common image formats plus MP4, WebM, OGV, MOV, and M4V video attachments. Actual native playback depends on the visitor's browser and the codecs inside each file. Posts containing only text are not archived.
+Ingestion accepts common image formats plus MP4, WebM, OGV, MOV, and M4V video attachments. Uploaded GIF attachments are retained, while externally hosted GIF/GIFV embeds from services such as Tenor are excluded. Actual native playback depends on the visitor's browser and the codecs inside each file. Posts containing only text are not archived.
 
 ## Media storage and performance
 
@@ -49,7 +49,7 @@ Images remain linked to their full-resolution originals. A normal click opens th
 `.github/workflows/sync.yml` runs every five minutes and on relevant pushes.
 
 - Scheduled runs use per-channel cursors for incremental ingestion.
-- Relevant pushes request a full backlog scan so normalization changes backfill old posts.
+- Relevant pushes request a full backlog scan so normalization changes backfill old posts and remove posts that are no longer eligible.
 - Media downloads and thumbnail generation happen independently per attachment.
 - `public/data/posts.json` is deduplicated by Discord message ID and sorted newest first.
 - New content is committed by `github-actions[bot]`, which triggers a fresh static deployment.

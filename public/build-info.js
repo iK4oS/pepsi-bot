@@ -13,7 +13,8 @@ export function buildInfoPayload(data) {
   const month = MONTHS[date.getUTCMonth()];
   const year = String(date.getUTCFullYear()).slice(-2);
   return {
-    label: `#${shortSha} @ ${day} ${month} '${year}`,
+    revisionLabel: `#${shortSha}`,
+    dateLabel: `@ ${day} ${month} '${year}`,
     href: `https://github.com/iK4oS/pepsi-bot/commit/${data.sha}`,
     isoDate
   };
