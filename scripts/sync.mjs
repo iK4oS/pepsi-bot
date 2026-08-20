@@ -7,6 +7,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_PATH = path.join(ROOT, 'public/data/posts.json');
 const MEDIA_DIR = path.join(ROOT, 'public/media');
 const API = 'https://discord.com/api/v10';
+export const MATERIALIZATION_INCOMPLETE = Symbol('materialization-incomplete');
 
 function imageExtension(filename = '', contentType = '', url = '') {
   const fromName = path.extname(filename).toLowerCase().replace(/[^.a-z0-9]/g, '');
@@ -30,6 +31,15 @@ function videoExtension(filename = '', contentType = '', url = '') {
   } catch { return '.mp4'; }
 }
 
+function isExternalGifEmbed(embed, candidate) {
+  if (embed.type?.toLowerCase() === 'gifv') return true;
+  try {
+    return new URL(candidate.url).pathname.toLowerCase().endsWith('.gif');
+  } catch {
+    return false;
+  }
+}
+
 function collectImages(message, messageId) {
   const images = [];
   for (const attachment of message.attachments ?? []) {
@@ -40,7 +50,7 @@ function collectImages(message, messageId) {
   }
   for (const [index, embed] of (message.embeds ?? []).entries()) {
     for (const candidate of [embed.image, embed.thumbnail]) {
-      if (!candidate?.url || images.some(image => image.sourceUrl === candidate.url)) continue;
+      if (!candidate?.url || isExternalGifEmbed(embed, candidate) || images.some(image => image.sourceUrl === candidate.url)) continue;
       const ext = imageExtension('', '', candidate.url);
       images.push({ sourceUrl: candidate.url, filename: `${messageId}-embed-${index}-${images.length}${ext}`, width: candidate.width, height: candidate.height });
     }
@@ -83,7 +93,7 @@ export function extractPost(wrapper, { guildId, channelId, targetUserId }) {
   let text = cleanCaption((source.content ?? '').trim() || embedText.trim());
   const images = collectImages(source, wrapper.id);
   const videos = collectVideos(source, wrapper.id);
-  if (!text && (images.length || videos.length)) text = isForward ? 'Forwarded post' : 'Untitled post';
+  if (!text && (images.length || videos.length)) text = isForward ? 'Forwarded Post' : 'Untitled Post';
   if (images.length === 0 && videos.length === 0) return null;
   const reference = isForward ? wrapper.message_reference : null;
   const linkGuildId = guildId;
@@ -104,6 +114,13 @@ export function mergePosts(existing, fresh) {
   const byId = new Map(existing.map(post => [post.id, post]));
   for (const post of fresh) byId.set(post.id, post);
   return [...byId.values()].sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+}
+
+export function reconcilePosts(existing, fresh, scannedChannelIds, fullSync = false, eligiblePostIds = new Set()) {
+  if (!fullSync) return mergePosts(existing, fresh);
+  const scanned = new Set(scannedChannelIds);
+  const retained = existing.filter(post => !scanned.has(post.channelId) || eligiblePostIds.has(post.id));
+  return mergePosts(retained, fresh);
 }
 
 export function scanCursor(savedCursor, fullSync = false) {
@@ -180,6 +197,7 @@ async function downloadMedia(media, kind) {
 
 export async function materializePost(post, downloader = downloadMedia, warn = console.warn) {
   const images = [];
+  let incomplete = false;
   for (const image of post.images) {
     try {
       images.push({
@@ -187,6 +205,7 @@ export async function materializePost(post, downloader = downloadMedia, warn = c
         ...(image.fallbackUrl ? { fallbackUrl: image.fallbackUrl } : {})
       });
     } catch (error) {
+      incomplete = true;
       warn(`Skipping unavailable image ${image.filename}: ${error.message}`);
     }
   }
@@ -198,10 +217,22 @@ export async function materializePost(post, downloader = downloadMedia, warn = c
         ...(video.fallbackUrl ? { fallbackUrl: video.fallbackUrl } : {})
       });
     } catch (error) {
+      incomplete = true;
       warn(`Skipping unavailable video ${video.filename}: ${error.message}`);
     }
   }
-  return images.length || videos.length ? { ...post, images, videos } : null;
+  if (!images.length && !videos.length) return null;
+  const result = { ...post, images, videos };
+  if (incomplete) Object.defineProperty(result, MATERIALIZATION_INCOMPLETE, { value: true });
+  return result;
+}
+
+export function resolveMaterializedPost(existing, materialized) {
+  return existing && materialized?.[MATERIALIZATION_INCOMPLETE] ? existing : materialized;
+}
+
+export function shouldWriteSync(totalMessages, fullSync = false) {
+  return totalMessages > 0 || fullSync;
 }
 
 async function main() {
@@ -219,6 +250,8 @@ async function main() {
   const fullSync = /^(1|true|yes)$/i.test(process.env.FULL_SYNC ?? '');
   const lastScannedIds = { ...(state.lastScannedIds ?? {}) };
   const materialized = [];
+  const eligiblePostIds = new Set();
+  const existingById = new Map(state.posts.map(post => [post.id, post]));
   let totalMessages = 0;
 
   for (const channelId of channelIds) {
@@ -232,6 +265,7 @@ async function main() {
 
     const context = { guildId, channelId, targetUserId };
     const extracted = messages.map(message => extractPost(message, context)).filter(Boolean);
+    for (const post of extracted) eligiblePostIds.add(post.id);
     const forwarded = messages.filter(message => message.message_snapshots?.length);
     const eligibleForwards = forwarded.map(message => extractPost(message, context)).filter(Boolean);
     const extractedVideos = extracted.reduce((count, post) => count + post.videos.length, 0);
@@ -239,7 +273,8 @@ async function main() {
 
     for (const post of extracted) {
       const archived = await materializePost(post);
-      if (archived) materialized.push(archived);
+      const resolved = resolveMaterializedPost(existingById.get(post.id), archived);
+      if (resolved) materialized.push(resolved);
     }
 
     lastScannedIds[channelId] = messages.reduce(
@@ -248,7 +283,7 @@ async function main() {
     );
   }
 
-  if (totalMessages === 0) {
+  if (!shouldWriteSync(totalMessages, fullSync)) {
     console.log('No new messages in any configured channel; nothing to update.');
     return;
   }
@@ -256,7 +291,7 @@ async function main() {
   const output = {
     updatedAt: new Date().toISOString(),
     lastScannedIds,
-    posts: mergePosts(state.posts, materialized)
+    posts: reconcilePosts(state.posts, materialized, channelIds, fullSync, eligiblePostIds)
   };
   await mkdir(path.dirname(DATA_PATH), { recursive: true });
   await writeFile(DATA_PATH, `${JSON.stringify(output, null, 2)}\n`);

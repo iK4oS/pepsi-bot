@@ -5,7 +5,7 @@ import { lightboxPayload, shouldCloseFromTarget } from './lightbox.js';
 import { setMediaSource, setMediaSources, useMediaFallback } from './media-fallback.js';
 import { imageMediaPayload, shouldOpenImageLightbox, videoMediaPayload } from './media-performance.js';
 import { matchesPost } from './search.js';
-import { initialTheme, nextTheme } from './theme.js';
+import { initialTheme, nextTheme, syncDarkReaderLock } from './theme.js';
 
 const collage = document.querySelector('#collage');
 const empty = document.querySelector('#empty');
@@ -19,6 +19,7 @@ const lightboxFigure = lightbox.querySelector('figure');
 const lightboxClose = lightbox.querySelector('.lightbox-close');
 const template = document.querySelector('#post-template');
 const buildRevision = document.querySelector('#build-revision');
+const buildDate = document.querySelector('#build-date');
 const activeRoute = routeName(window.location.pathname);
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
@@ -41,6 +42,7 @@ function readSavedTheme() {
 
 function applyTheme(theme, persist = false) {
   document.documentElement.dataset.theme = theme;
+  syncDarkReaderLock(theme);
   const light = theme === 'light';
   themeToggle.setAttribute('aria-pressed', String(light));
   themeToggle.setAttribute('aria-label', `Switch to ${light ? 'dark' : 'light'} theme`);
@@ -187,7 +189,8 @@ async function loadBuildInfo() {
     if (!response.ok) return;
     const payload = buildInfoPayload(await response.json());
     if (!payload) return;
-    buildRevision.textContent = payload.label;
+    buildRevision.textContent = payload.revisionLabel;
+    buildDate.textContent = ` ${payload.dateLabel}`;
     buildRevision.href = payload.href;
     buildRevision.title = `GitHub revision committed ${payload.isoDate}`;
   } catch {}

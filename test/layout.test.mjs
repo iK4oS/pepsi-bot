@@ -28,6 +28,12 @@ test('collage uses packed masonry without deferred-size placeholders', async () 
   assert.match(app, /style\.transform\s*=\s*`translate3d/);
 });
 
+test('reserves the initial viewport so asynchronous gallery insertion does not shift the footer', async () => {
+  const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
+  const main = css.match(/main\s*\{([^}]*)\}/)?.[1] ?? '';
+  assert.match(main, /min-height:\s*calc\(100(?:s|d)?vh\s*-\s*72px\)/);
+});
+
 test('masonry packs each post into the shortest column without row gaps', () => {
   const result = masonryLayout([300, 120, 220, 180, 160, 90, 140], 3, 200, 16);
   assert.deepEqual(result.items, [

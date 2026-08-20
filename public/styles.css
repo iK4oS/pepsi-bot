@@ -128,7 +128,7 @@ body {
 :root[data-theme="light"] .theme-toggle .sun { display: none; }
 :root[data-theme="light"] .theme-toggle .moon { display: block; }
 #status { margin: 0; color: var(--muted); font-size: 13px; text-align: right; }
-main { padding: 18px clamp(10px, 2vw, 32px) 64px; }
+main { min-height: calc(100vh - 72px); padding: 18px clamp(10px, 2vw, 32px) 64px; }
 .collage {
   --columns: 1;
   --gap: 16px;
