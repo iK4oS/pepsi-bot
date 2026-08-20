@@ -105,10 +105,10 @@ test('includes image-only forwards with a fallback title', () => {
   assert.equal(post.images.length, 1);
 });
 
-test('requires both text and at least one image and rejects other authors', () => {
+test('includes textless visual posts and rejects text-only or other-author posts', () => {
   const base = { id: '202', channel_id: context.channelId, author: { id: context.targetUserId }, timestamp: '2026-08-18T10:00:00Z', content: 'text', attachments: [], embeds: [] };
   assert.equal(extractPost(base, context), null);
-  assert.equal(extractPost({ ...base, content: '', attachments: [{ id: 'a', filename: 'x.png', content_type: 'image/png', url: 'https://cdn/x.png' }] }, context), null);
+  assert.equal(extractPost({ ...base, content: '', attachments: [{ id: 'a', filename: 'x.png', content_type: 'image/png', url: 'https://cdn/x.png' }] }, context).text, 'Untitled post');
   assert.equal(extractPost({ ...base, author: { id: 'someone-else' }, attachments: [{ id: 'a', filename: 'x.png', content_type: 'image/png', url: 'https://cdn/x.png' }] }, context), null);
 });
 
@@ -121,13 +121,13 @@ test('uses embed copy when the message body is empty', () => {
   assert.equal(extractPost(message, context).text, 'A title\nEmbed caption');
 });
 
-test('rejects URL-only captions and removes media URLs from real captions', () => {
+test('uses fallback copy for URL-only captions and removes media URLs from real captions', () => {
   const base = {
     id: '205', channel_id: context.channelId, author: { id: context.targetUserId },
     timestamp: '2026-08-18T11:00:00Z', attachments: [],
     embeds: [{ image: { url: 'https://cdn/embed.jpg' } }]
   };
-  assert.equal(extractPost({ ...base, content: 'https://cdn.discordapp.com/photo.jpg' }, context), null);
+  assert.equal(extractPost({ ...base, content: 'https://cdn.discordapp.com/photo.jpg' }, context).text, 'Untitled post');
   assert.equal(extractPost({ ...base, content: 'Dinner tonight\nhttps://cdn.discordapp.com/photo.jpg' }, context).text, 'Dinner tonight');
 });
 
