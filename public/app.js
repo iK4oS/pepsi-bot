@@ -6,6 +6,7 @@ import { setMediaSource, setMediaSources, useMediaFallback } from './media-fallb
 import { imageMediaPayload, shouldOpenImageLightbox, videoMediaPayload } from './media-performance.js';
 import { matchesPost } from './search.js';
 import { initialTheme, nextTheme, syncDarkReaderLock } from './theme.js';
+import { pauseVideos, shouldPauseOffscreenVideo } from './video-visibility.js';
 
 const collage = document.querySelector('#collage');
 const empty = document.querySelector('#empty');
@@ -80,6 +81,12 @@ function scheduleCollageLayout() {
 }
 
 const postResizeObserver = new ResizeObserver(scheduleCollageLayout);
+const videoVisibilityObserver = new IntersectionObserver(entries => {
+  const fullscreenElement = document.fullscreenElement ?? document.webkitFullscreenElement;
+  for (const entry of entries) {
+    if (shouldPauseOffscreenVideo(entry, fullscreenElement)) entry.target.pause();
+  }
+});
 
 function openLightbox(post, index) {
   const payload = lightboxPayload(post, index);
@@ -147,10 +154,13 @@ function renderResults(query = '') {
   const scoped = filterPostsForRoute(allPosts, window.location.pathname);
   const filtered = scoped.filter(post => matchesPost(post, query));
   postResizeObserver.disconnect();
+  videoVisibilityObserver.disconnect();
+  pauseVideos(collage.querySelectorAll('video'));
   collage.replaceChildren();
   postCount = filtered.length;
   for (const post of filtered) collage.append(renderPost(post));
   for (const post of collage.querySelectorAll('.post')) postResizeObserver.observe(post);
+  for (const video of collage.querySelectorAll('video')) videoVisibilityObserver.observe(video);
   layoutCollage();
 
   const searching = query.trim().length > 0;
