@@ -43,6 +43,12 @@ test('footer credits Pepsi Cat and exposes a linked build revision', async () =>
   assert.match(await readFile(new URL('../public/build-info.js', import.meta.url), 'utf8'), /BUILD_INFO_URL = '\/build-info\.json'/);
 });
 
+test('empty archive copy reflects that captions are optional', async () => {
+  const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+  assert.match(app, /New visual posts will appear here automatically\./);
+  assert.doesNotMatch(app, /New posts with text and visual media/);
+});
+
 test('scheduled sync uses the archive guild ID', async () => {
   const workflow = await readFile(new URL('../.github/workflows/sync.yml', import.meta.url), 'utf8');
   assert.match(workflow, /DISCORD_GUILD_ID:\s*["']731881028573986874["']/);
