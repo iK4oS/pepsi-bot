@@ -2,7 +2,7 @@ import { centeredColumnCount } from './layout.js';
 import { filterPostsForRoute, routeName } from './filters.js';
 import { lightboxPayload, shouldCloseFromTarget } from './lightbox.js';
 import { setMediaSource, setMediaSources, useMediaFallback } from './media-fallback.js';
-import { imageMediaPayload, upgradeImageToFullResolution, videoMediaPayload } from './media-performance.js';
+import { imageMediaPayload, shouldOpenImageLightbox, videoMediaPayload } from './media-performance.js';
 import { matchesPost } from './search.js';
 import { initialTheme, nextTheme } from './theme.js';
 
@@ -69,18 +69,14 @@ function renderPost(post) {
   const mediaCount = post.images.length + (post.videos?.length ?? 0);
   if (mediaCount > 1) media.classList.add('multi');
   for (const [index, image] of post.images.entries()) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'image-button';
+    const link = document.createElement('a');
+    link.className = 'image-link';
     const img = document.createElement('img');
     const sources = imageMediaPayload(image);
     const fullSrc = new URL(assetPath(sources.fullSrc), window.location.href).href;
+    link.href = fullSrc;
     setMediaSources(img, [assetPath(sources.previewSrc), fullSrc, sources.fallbackUrl]);
-    img.dataset.fullSrc = fullSrc;
     img.addEventListener('error', () => useMediaFallback(img));
-    img.addEventListener('contextmenu', () => {
-      if (upgradeImageToFullResolution(img)) setMediaSource(img, fullSrc, sources.fallbackUrl);
-    });
     const payload = lightboxPayload(post, index);
     img.alt = payload.alt;
     img.loading = 'lazy';
@@ -88,10 +84,14 @@ function renderPost(post) {
     img.fetchPriority = 'low';
     if (image.width) img.width = image.width;
     if (image.height) img.height = image.height;
-    button.setAttribute('aria-label', `Enlarge ${payload.alt}`);
-    button.addEventListener('click', () => openLightbox(post, index));
-    button.append(img);
-    media.append(button);
+    link.setAttribute('aria-label', `Enlarge ${payload.alt}`);
+    link.addEventListener('click', event => {
+      if (!shouldOpenImageLightbox(event)) return;
+      event.preventDefault();
+      openLightbox(post, index);
+    });
+    link.append(img);
+    media.append(link);
   }
   for (const [index, item] of (post.videos ?? []).entries()) {
     const video = document.createElement('video');
