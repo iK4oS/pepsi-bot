@@ -7,3 +7,18 @@ export function centeredColumnCount(postCount, viewportWidth) {
   const contentColumns = Math.max(1, Math.ceil(Math.sqrt(postCount * 1.5)));
   return Math.min(viewportCap, contentColumns, Math.max(1, postCount));
 }
+
+export function masonryLayout(itemHeights, columnCount, columnWidth, gap) {
+  const columnHeights = Array(columnCount).fill(0);
+  const items = itemHeights.map(height => {
+    const shortest = Math.min(...columnHeights);
+    const column = columnHeights.indexOf(shortest);
+    const position = { column, x: column * (columnWidth + gap), y: shortest };
+    columnHeights[column] += height + gap;
+    return position;
+  });
+  return {
+    items,
+    height: Math.max(0, ...columnHeights) - (items.length ? gap : 0)
+  };
+}

@@ -1,4 +1,4 @@
-import { centeredColumnCount } from './layout.js';
+import { centeredColumnCount, masonryLayout } from './layout.js';
 import { BUILD_INFO_URL, buildInfoPayload } from './build-info.js';
 import { filterPostsForRoute, routeName } from './filters.js';
 import { lightboxPayload, shouldCloseFromTarget } from './lightbox.js';
@@ -24,6 +24,7 @@ const activeRoute = routeName(window.location.pathname);
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 let allPosts = [];
 let postCount = 0;
+let layoutFrame = 0;
 
 for (const link of document.querySelectorAll('.section-nav a')) {
   if (link.dataset.route === activeRoute) link.setAttribute('aria-current', 'page');
@@ -52,9 +53,31 @@ function applyTheme(theme, persist = false) {
 let theme = initialTheme(readSavedTheme());
 applyTheme(theme);
 
-function centerCollage() {
-  collage.style.setProperty('--columns', centeredColumnCount(postCount, window.innerWidth));
+function layoutCollage() {
+  const columns = centeredColumnCount(postCount, window.innerWidth);
+  collage.style.setProperty('--columns', columns);
+  const posts = [...collage.querySelectorAll('.post')];
+  if (!posts.length) {
+    collage.style.height = '0px';
+    return;
+  }
+  const gap = Number.parseFloat(getComputedStyle(collage).getPropertyValue('--gap')) || 16;
+  const columnWidth = (collage.clientWidth - gap * (columns - 1)) / columns;
+  for (const post of posts) post.style.width = `${columnWidth}px`;
+  const layout = masonryLayout(posts.map(post => post.getBoundingClientRect().height), columns, columnWidth, gap);
+  for (const [index, post] of posts.entries()) {
+    const { x, y } = layout.items[index];
+    post.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  }
+  collage.style.height = `${layout.height}px`;
 }
+
+function scheduleCollageLayout() {
+  cancelAnimationFrame(layoutFrame);
+  layoutFrame = requestAnimationFrame(layoutCollage);
+}
+
+const postResizeObserver = new ResizeObserver(scheduleCollageLayout);
 
 function openLightbox(post, index) {
   const payload = lightboxPayload(post, index);
@@ -121,10 +144,12 @@ function renderPost(post) {
 function renderResults(query = '') {
   const scoped = filterPostsForRoute(allPosts, window.location.pathname);
   const filtered = scoped.filter(post => matchesPost(post, query));
+  postResizeObserver.disconnect();
   collage.replaceChildren();
   postCount = filtered.length;
-  centerCollage();
   for (const post of filtered) collage.append(renderPost(post));
+  for (const post of collage.querySelectorAll('.post')) postResizeObserver.observe(post);
+  layoutCollage();
 
   const searching = query.trim().length > 0;
   empty.hidden = filtered.length !== 0;
@@ -184,6 +209,6 @@ lightboxImage.addEventListener('error', () => useMediaFallback(lightboxImage));
 lightbox.addEventListener('click', event => {
   if (shouldCloseFromTarget(event.target, lightbox, lightboxFigure)) lightbox.close();
 });
-window.addEventListener('resize', centerCollage, { passive: true });
+window.addEventListener('resize', scheduleCollageLayout, { passive: true });
 load();
 loadBuildInfo();
