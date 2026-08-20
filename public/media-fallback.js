@@ -1,13 +1,24 @@
+function validMediaUrl(url) {
+  return typeof url === 'string' && (/^https?:\/\//i.test(url) || url.startsWith('/'));
+}
+
+export function setMediaSources(element, urls) {
+  const [primaryUrl, ...fallbackUrls] = [...new Set(urls.filter(validMediaUrl))];
+  element.src = primaryUrl || '';
+  element.dataset.fallbackUrls = JSON.stringify(fallbackUrls);
+}
+
 export function setMediaSource(element, primaryUrl, fallbackUrl = '') {
-  element.src = primaryUrl;
-  delete element.dataset.fallbackAttempted;
-  element.dataset.fallbackUrl = /^https?:\/\//i.test(fallbackUrl) ? fallbackUrl : '';
+  setMediaSources(element, [primaryUrl, fallbackUrl]);
 }
 
 export function useMediaFallback(element) {
-  const fallbackUrl = element.dataset.fallbackUrl;
-  if (!fallbackUrl || element.dataset.fallbackAttempted) return false;
-  element.dataset.fallbackAttempted = 'true';
+  let fallbackUrls;
+  try { fallbackUrls = JSON.parse(element.dataset.fallbackUrls || '[]'); }
+  catch { fallbackUrls = []; }
+  const fallbackUrl = fallbackUrls.shift();
+  if (!fallbackUrl) return false;
+  element.dataset.fallbackUrls = JSON.stringify(fallbackUrls);
   element.src = fallbackUrl;
   return true;
 }

@@ -1,7 +1,8 @@
 import { centeredColumnCount } from './layout.js';
 import { filterPostsForRoute, routeName } from './filters.js';
 import { lightboxPayload, shouldCloseFromTarget } from './lightbox.js';
-import { setMediaSource, useMediaFallback } from './media-fallback.js';
+import { setMediaSource, setMediaSources, useMediaFallback } from './media-fallback.js';
+import { imageMediaPayload, upgradeImageToFullResolution, videoMediaPayload } from './media-performance.js';
 import { matchesPost } from './search.js';
 import { initialTheme, nextTheme } from './theme.js';
 
@@ -72,12 +73,19 @@ function renderPost(post) {
     button.type = 'button';
     button.className = 'image-button';
     const img = document.createElement('img');
-    setMediaSource(img, assetPath(image.src), image.fallbackUrl);
+    const sources = imageMediaPayload(image);
+    const fullSrc = new URL(assetPath(sources.fullSrc), window.location.href).href;
+    setMediaSources(img, [assetPath(sources.previewSrc), fullSrc, sources.fallbackUrl]);
+    img.dataset.fullSrc = fullSrc;
     img.addEventListener('error', () => useMediaFallback(img));
+    img.addEventListener('contextmenu', () => {
+      if (upgradeImageToFullResolution(img)) setMediaSource(img, fullSrc, sources.fallbackUrl);
+    });
     const payload = lightboxPayload(post, index);
     img.alt = payload.alt;
     img.loading = 'lazy';
     img.decoding = 'async';
+    img.fetchPriority = 'low';
     if (image.width) img.width = image.width;
     if (image.height) img.height = image.height;
     button.setAttribute('aria-label', `Enlarge ${payload.alt}`);
@@ -87,10 +95,12 @@ function renderPost(post) {
   }
   for (const [index, item] of (post.videos ?? []).entries()) {
     const video = document.createElement('video');
-    setMediaSource(video, assetPath(item.src), item.fallbackUrl);
+    const sources = videoMediaPayload(item);
+    setMediaSource(video, assetPath(sources.src), sources.fallbackUrl);
     video.addEventListener('error', () => useMediaFallback(video));
     video.controls = true;
-    video.preload = 'metadata';
+    video.preload = sources.preload;
+    if (sources.poster) video.poster = assetPath(sources.poster);
     video.playsInline = true;
     video.setAttribute('aria-label', `${post.text} — video ${index + 1} of ${post.videos.length}`);
     if (item.width) video.width = item.width;

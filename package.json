@@ -6,7 +6,7 @@
   "scripts": {
     "sync": "node scripts/sync.mjs",
     "test": "node --test",
-    "check": "node --check scripts/sync.mjs && node --check public/app.js"
+    "check": "node --check scripts/sync.mjs && node --check scripts/thumbnails.mjs && node --check public/app.js && node --check public/media-performance.js"
   },
   "engines": { "node": ">=22" }
 }

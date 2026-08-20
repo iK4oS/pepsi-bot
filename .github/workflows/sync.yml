@@ -3,7 +3,12 @@ name: Sync Discord collage
 on:
   push:
     branches: [main]
-    paths: [.github/workflows/sync.yml]
+    paths:
+      - .github/workflows/sync.yml
+      - scripts/**
+      - public/*.js
+      - test/**
+      - package.json
   workflow_dispatch:
     inputs:
       full_sync:
@@ -34,6 +39,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm test
+      - name: Verify thumbnail encoder
+        run: ffmpeg -version
       - name: Fetch Discord posts with attachment fallbacks
         run: npm run sync
         env:
