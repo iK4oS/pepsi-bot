@@ -32,6 +32,17 @@ test('thumbnail interaction targets a full-resolution link', async () => {
   assert.match(css, /\.image-link\s+img\s*\{[^}]*pointer-events:\s*none/);
 });
 
+test('footer credits Pepsi Cat and exposes a linked build revision', async () => {
+  const index = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
+  const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+  assert.match(index, /<footer class="site-footer"/);
+  assert.match(index, /Pepsi Cat \/ Nikolas/);
+  assert.match(index, /id="build-revision"/);
+  assert.match(app, /BUILD_INFO_URL/);
+  assert.match(app, /buildInfoPayload/);
+  assert.match(await readFile(new URL('../public/build-info.js', import.meta.url), 'utf8'), /BUILD_INFO_URL = '\/build-info\.json'/);
+});
+
 test('scheduled sync uses the archive guild ID', async () => {
   const workflow = await readFile(new URL('../.github/workflows/sync.yml', import.meta.url), 'utf8');
   assert.match(workflow, /DISCORD_GUILD_ID:\s*["']731881028573986874["']/);
