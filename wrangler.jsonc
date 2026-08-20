@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "pepsi-bot",
+  "compatibility_date": "2026-08-20",
+  "assets": {
+    "directory": "./public"
+  },
+  "build": {
+    "command": "npm run build"
+  }
+}

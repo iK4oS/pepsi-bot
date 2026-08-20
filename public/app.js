@@ -1,4 +1,5 @@
 import { centeredColumnCount } from './layout.js';
+import { BUILD_INFO_URL, buildInfoPayload } from './build-info.js';
 import { filterPostsForRoute, routeName } from './filters.js';
 import { lightboxPayload, shouldCloseFromTarget } from './lightbox.js';
 import { setMediaSource, setMediaSources, useMediaFallback } from './media-fallback.js';
@@ -17,6 +18,7 @@ const lightboxCaption = lightbox.querySelector('figcaption');
 const lightboxFigure = lightbox.querySelector('figure');
 const lightboxClose = lightbox.querySelector('.lightbox-close');
 const template = document.querySelector('#post-template');
+const buildRevision = document.querySelector('#build-revision');
 const activeRoute = routeName(window.location.pathname);
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
@@ -151,6 +153,21 @@ async function load() {
   }
 }
 
+async function loadBuildInfo() {
+  try {
+    const response = await fetch(BUILD_INFO_URL, {
+      cache: 'no-cache',
+      headers: { Accept: 'application/vnd.github+json' }
+    });
+    if (!response.ok) return;
+    const payload = buildInfoPayload(await response.json());
+    if (!payload) return;
+    buildRevision.textContent = payload.label;
+    buildRevision.href = payload.href;
+    buildRevision.title = `GitHub revision committed ${payload.isoDate}`;
+  } catch {}
+}
+
 search.addEventListener('input', () => renderResults(search.value));
 search.addEventListener('keydown', event => {
   if (event.key === 'Escape' && search.value) {
@@ -169,3 +186,4 @@ lightbox.addEventListener('click', event => {
 });
 window.addEventListener('resize', centerCollage, { passive: true });
 load();
+loadBuildInfo();

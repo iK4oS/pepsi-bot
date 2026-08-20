@@ -209,6 +209,23 @@ time { color: var(--muted); font-size: 12px; }
 .empty { max-width: 520px; margin: 18vh auto 0; text-align: center; }
 .empty h1 { margin-bottom: 6px; font-size: clamp(28px, 5vw, 48px); letter-spacing: -.05em; }
 .empty p { color: var(--muted); }
+.site-footer {
+  display: flex;
+  width: min(calc(100% - 32px), 1080px);
+  margin: 0 auto;
+  padding: 20px 0 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+.site-footer p { margin: 0; }
+.site-footer strong { color: var(--ink); font-weight: 600; }
+.site-footer a { color: var(--muted); font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; text-decoration: none; }
+.site-footer a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.site-footer a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .lightbox {
   width: 100vw;
   max-width: none;
@@ -230,5 +247,5 @@ time { color: var(--muted); font-size: 12px; }
 .lightbox-close:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 .lightbox-close svg { width: 20px; height: 20px; fill: currentColor; }
 @media (max-width: 760px) { .site-header { grid-template-columns: minmax(0, 1fr) auto; } .brand-area { min-width: 0; gap: 6px; } .brand-label { display: none; } .section-nav a { padding-inline: 7px; } .search { grid-column: 1 / -1; grid-row: 2; } .collage { column-gap: 10px; } .post { margin-bottom: 10px; border-radius: 16px; } }
-@media (max-width: 520px) { .site-header { min-height: 62px; gap: 10px; } .brand { font-size: 16px; } .brand img { width: 22px; height: 22px; } .section-nav a { padding: 6px 5px; font-size: 12px; } #status { display: none; } .collage { max-width: 440px; } main { padding-inline: 8px; } }
+@media (max-width: 520px) { .site-header { min-height: 62px; gap: 10px; } .brand { font-size: 16px; } .brand img { width: 22px; height: 22px; } .section-nav a { padding: 6px 5px; font-size: 12px; } #status { display: none; } .collage { max-width: 440px; } main { padding-inline: 8px; } .site-footer { width: calc(100% - 24px); align-items: flex-start; flex-direction: column; gap: 7px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }

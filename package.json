@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node scripts/build-info.mjs",
     "sync": "node scripts/sync.mjs",
     "test": "node --test",
-    "check": "node --check scripts/sync.mjs && node --check scripts/thumbnails.mjs && node --check public/app.js && node --check public/media-performance.js"
+    "check": "node --check scripts/build-info.mjs && node --check scripts/sync.mjs && node --check scripts/thumbnails.mjs && node --check public/app.js && node --check public/build-info.js && node --check public/media-performance.js"
   },
   "engines": { "node": ">=22" }
 }
