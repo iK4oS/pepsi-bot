@@ -83,8 +83,8 @@ export function extractPost(wrapper, { guildId, channelId, targetUserId }) {
   let text = cleanCaption((source.content ?? '').trim() || embedText.trim());
   const images = collectImages(source, wrapper.id);
   const videos = collectVideos(source, wrapper.id);
-  if (!text && isForward && (images.length || videos.length)) text = 'Forwarded post';
-  if (!text || (images.length === 0 && videos.length === 0)) return null;
+  if (!text && (images.length || videos.length)) text = isForward ? 'Forwarded post' : 'Untitled post';
+  if (images.length === 0 && videos.length === 0) return null;
   const reference = isForward ? wrapper.message_reference : null;
   const linkGuildId = guildId;
   const linkChannelId = reference?.channel_id || channelId;
