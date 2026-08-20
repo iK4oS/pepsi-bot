@@ -39,8 +39,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm test
-      - name: Verify thumbnail encoder
-        run: ffmpeg -version
+      - name: Install thumbnail encoder
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install --yes ffmpeg
+          fi
+          ffmpeg -version
       - name: Fetch Discord posts with attachment fallbacks
         run: npm run sync
         env:
