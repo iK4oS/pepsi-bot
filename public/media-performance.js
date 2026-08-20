@@ -6,6 +6,10 @@ export function imageMediaPayload(item) {
   };
 }
 
+export function shouldOpenImageLightbox(event) {
+  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}
+
 export function videoMediaPayload(item) {
   return {
     src: item.src,
@@ -13,11 +17,4 @@ export function videoMediaPayload(item) {
     preload: 'none',
     ...(item.fallbackUrl ? { fallbackUrl: item.fallbackUrl } : {})
   };
-}
-
-export function upgradeImageToFullResolution(image) {
-  const fullSrc = image.dataset.fullSrc;
-  if (!fullSrc || image.src === fullSrc) return false;
-  image.src = fullSrc;
-  return true;
 }

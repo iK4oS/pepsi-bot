@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {
   imageMediaPayload,
-  upgradeImageToFullResolution,
+  shouldOpenImageLightbox,
   videoMediaPayload
 } from '../public/media-performance.js';
 import { ensureThumbnail, thumbnailMetadata, thumbnailRelativePath } from '../scripts/thumbnails.mjs';
@@ -29,14 +29,13 @@ test('legacy gallery images without thumbnails continue to use their full source
   });
 });
 
-test('right-click upgrades an image element to its full-resolution URL', () => {
-  const image = {
-    src: 'https://pepsicat.photos/media/thumbnails/cat.webp',
-    dataset: { fullSrc: 'https://pepsicat.photos/media/cat.jpg' }
-  };
-  assert.equal(upgradeImageToFullResolution(image), true);
-  assert.equal(image.src, 'https://pepsicat.photos/media/cat.jpg');
-  assert.equal(upgradeImageToFullResolution(image), false);
+test('only an unmodified primary click opens the image lightbox', () => {
+  const click = overrides => ({ button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, ...overrides });
+  assert.equal(shouldOpenImageLightbox(click({})), true);
+  assert.equal(shouldOpenImageLightbox(click({ button: 1 })), false);
+  for (const modifier of ['metaKey', 'ctrlKey', 'shiftKey', 'altKey']) {
+    assert.equal(shouldOpenImageLightbox(click({ [modifier]: true })), false, modifier);
+  }
 });
 
 test('videos expose a lightweight poster and defer loading the full video', () => {

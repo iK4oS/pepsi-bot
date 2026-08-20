@@ -22,6 +22,16 @@ test('fullscreen videos use contain sizing', async () => {
   assert.match(css, /video:-webkit-full-screen[\s\S]*?object-fit:\s*contain/);
 });
 
+test('thumbnail interaction targets a full-resolution link', async () => {
+  const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../public/styles.css', import.meta.url), 'utf8');
+  assert.match(app, /document\.createElement\('a'\)/);
+  assert.match(app, /link\.href\s*=\s*fullSrc/);
+  assert.match(app, /if \(!shouldOpenImageLightbox\(event\)\) return/);
+  assert.match(app, /event\.preventDefault\(\)[\s\S]*openLightbox/);
+  assert.match(css, /\.image-link\s+img\s*\{[^}]*pointer-events:\s*none/);
+});
+
 test('scheduled sync uses the archive guild ID', async () => {
   const workflow = await readFile(new URL('../.github/workflows/sync.yml', import.meta.url), 'utf8');
   assert.match(workflow, /DISCORD_GUILD_ID:\s*["']731881028573986874["']/);

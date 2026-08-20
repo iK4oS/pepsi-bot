@@ -149,8 +149,9 @@ main { padding: 18px clamp(10px, 2vw, 32px) 64px; }
   transition: background-color 180ms ease;
 }
 .media { display: grid; gap: 2px; background: var(--line); }
-.image-button { display: block; width: 100%; padding: 0; border: 0; color: inherit; background: transparent; cursor: zoom-in; }
-.image-button:focus-visible { position: relative; z-index: 1; outline: 3px solid var(--focus); outline-offset: -3px; }
+.image-link { display: block; width: 100%; padding: 0; border: 0; color: inherit; background: transparent; cursor: zoom-in; }
+.image-link:focus-visible { position: relative; z-index: 1; outline: 3px solid var(--focus); outline-offset: -3px; }
+.image-link img { pointer-events: none; }
 .media img,
 .media video {
   display: block;
@@ -166,7 +167,7 @@ main { padding: 18px clamp(10px, 2vw, 32px) 64px; }
 .media.multi img,
 .media.multi video { height: 210px; }
 .media.multi > :first-child:nth-last-child(odd) { grid-column: 1 / -1; }
-.media.multi > .image-button:first-child:nth-last-child(odd) img,
+.media.multi > .image-link:first-child:nth-last-child(odd) img,
 .media.multi > video:first-child:nth-last-child(odd) { height: auto; max-height: 420px; }
 .media video:fullscreen,
 .media.multi video:fullscreen {
