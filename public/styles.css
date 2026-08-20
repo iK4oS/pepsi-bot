@@ -144,6 +144,8 @@ main { padding: 18px clamp(10px, 2vw, 32px) 64px; }
   border-radius: 20px;
   background: var(--surface);
   break-inside: avoid;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 520px;
   transition: background-color 180ms ease;
 }
 .media { display: grid; gap: 2px; background: var(--line); }

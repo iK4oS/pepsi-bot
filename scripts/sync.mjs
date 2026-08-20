@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { thumbnailMetadata } from './thumbnails.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_PATH = path.join(ROOT, 'public/data/posts.json');
@@ -156,7 +157,7 @@ async function fetchMessages(token, channelId, lastScannedId) {
   return messages;
 }
 
-async function downloadMedia(media) {
+async function downloadMedia(media, kind) {
   await mkdir(MEDIA_DIR, { recursive: true });
   const destination = path.join(MEDIA_DIR, media.filename);
   try {
@@ -166,8 +167,11 @@ async function downloadMedia(media) {
     if (!response.ok) throw new Error(`Media download ${response.status}: ${media.sourceUrl}`);
     await writeFile(destination, Buffer.from(await response.arrayBuffer()));
   }
+  const src = `media/${media.filename}`;
+  const thumbnail = await thumbnailMetadata(destination, path.join(ROOT, 'public'), src, kind);
   return {
-    src: `media/${media.filename}`,
+    src,
+    ...thumbnail,
     width: media.width,
     height: media.height,
     ...(media.contentType ? { contentType: media.contentType } : {})
@@ -179,7 +183,7 @@ export async function materializePost(post, downloader = downloadMedia, warn = c
   for (const image of post.images) {
     try {
       images.push({
-        ...await downloader(image),
+        ...await downloader(image, 'image'),
         ...(image.fallbackUrl ? { fallbackUrl: image.fallbackUrl } : {})
       });
     } catch (error) {
@@ -190,7 +194,7 @@ export async function materializePost(post, downloader = downloadMedia, warn = c
   for (const video of post.videos ?? []) {
     try {
       videos.push({
-        ...await downloader(video),
+        ...await downloader(video, 'video'),
         ...(video.fallbackUrl ? { fallbackUrl: video.fallbackUrl } : {})
       });
     } catch (error) {
