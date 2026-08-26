@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { lightboxPayload, shouldCloseFromTarget } from '../public/lightbox.js';
+import {
+  lightboxPayload,
+  prepareLightboxImage,
+  revealLightboxImage,
+  resetLightboxImage,
+  shouldCloseFromTarget
+} from '../public/lightbox.js';
 
 test('lightbox uses the clicked image, fallback, and post caption', () => {
   const post = { text: 'A caption', images: [{ src: 'media/one.jpg' }, { src: 'media/two.jpg', fallbackUrl: 'https://cdn.discordapp.com/two.jpg' }] };
@@ -24,4 +30,25 @@ test('empty dialog and figure space closes while content clicks stay open', () =
 test('single-image lightbox uses the caption as alt text', () => {
   const post = { text: 'A caption', images: [{ src: 'media/one.jpg' }] };
   assert.equal(lightboxPayload(post, 0).alt, 'A caption');
+});
+
+test('lightbox hides stale pixels until the next image loads and resets on close', () => {
+  const attributes = new Map([['src', '/media/previous.jpg']]);
+  const image = {
+    hidden: false,
+    dataset: { fallbackUrls: '["/media/fallback.jpg"]' },
+    removeAttribute(name) { attributes.delete(name); },
+    getAttribute(name) { return attributes.get(name) ?? null; }
+  };
+
+  prepareLightboxImage(image);
+  assert.equal(image.hidden, true);
+
+  revealLightboxImage(image);
+  assert.equal(image.hidden, false);
+
+  resetLightboxImage(image);
+  assert.equal(image.hidden, true);
+  assert.equal(image.getAttribute('src'), null);
+  assert.equal('fallbackUrls' in image.dataset, false);
 });
