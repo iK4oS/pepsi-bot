@@ -1,7 +1,13 @@
 import { centeredColumnCount, masonryLayout } from './layout.js';
 import { BUILD_INFO_URL, buildInfoPayload } from './build-info.js';
 import { filterPostsForRoute, routeName } from './filters.js';
-import { lightboxPayload, shouldCloseFromTarget } from './lightbox.js';
+import {
+  lightboxPayload,
+  prepareLightboxImage,
+  revealLightboxImage,
+  resetLightboxImage,
+  shouldCloseFromTarget
+} from './lightbox.js';
 import { setMediaSource, setMediaSources, useMediaFallback } from './media-fallback.js';
 import { imageMediaPayload, shouldOpenImageLightbox, videoMediaPayload } from './media-performance.js';
 import { matchesPost } from './search.js';
@@ -90,6 +96,7 @@ const videoVisibilityObserver = new IntersectionObserver(entries => {
 
 function openLightbox(post, index) {
   const payload = lightboxPayload(post, index);
+  prepareLightboxImage(lightboxImage);
   setMediaSource(lightboxImage, assetPath(payload.src), payload.fallbackUrl);
   lightboxImage.alt = payload.alt;
   lightboxCaption.textContent = payload.caption;
@@ -218,7 +225,9 @@ themeToggle.addEventListener('click', () => {
   applyTheme(theme, true);
 });
 lightboxClose.addEventListener('click', () => lightbox.close());
+lightboxImage.addEventListener('load', () => revealLightboxImage(lightboxImage));
 lightboxImage.addEventListener('error', () => useMediaFallback(lightboxImage));
+lightbox.addEventListener('close', () => resetLightboxImage(lightboxImage));
 lightbox.addEventListener('click', event => {
   if (shouldCloseFromTarget(event.target, lightbox, lightboxFigure)) lightbox.close();
 });

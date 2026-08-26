@@ -12,3 +12,17 @@ export function lightboxPayload(post, index) {
 export function shouldCloseFromTarget(target, dialog, figure) {
   return target === dialog || target === figure;
 }
+
+export function prepareLightboxImage(image) {
+  image.hidden = true;
+}
+
+export function revealLightboxImage(image) {
+  image.hidden = false;
+}
+
+export function resetLightboxImage(image) {
+  image.hidden = true;
+  image.removeAttribute('src');
+  delete image.dataset.fallbackUrls;
+}
