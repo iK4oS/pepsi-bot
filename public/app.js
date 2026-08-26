@@ -3,10 +3,12 @@ import { BUILD_INFO_URL, buildInfoPayload } from './build-info.js';
 import { filterPostsForRoute, routeName } from './filters.js';
 import {
   lightboxPayload,
+  neighborLightboxIndex,
   prepareLightboxImage,
   revealLightboxImage,
   resetLightboxImage,
-  shouldCloseFromTarget
+  shouldCloseFromTarget,
+  swapLightboxImage
 } from './lightbox.js';
 import { setMediaSource, setMediaSources, useMediaFallback } from './media-fallback.js';
 import { imageMediaPayload, shouldOpenImageLightbox, videoMediaPayload } from './media-performance.js';
@@ -20,10 +22,12 @@ const status = document.querySelector('#status');
 const search = document.querySelector('#post-search');
 const themeToggle = document.querySelector('#theme-toggle');
 const lightbox = document.querySelector('#lightbox');
-const lightboxImage = lightbox.querySelector('img');
+let lightboxImage = lightbox.querySelector('img');
 const lightboxCaption = lightbox.querySelector('figcaption');
 const lightboxFigure = lightbox.querySelector('figure');
 const lightboxClose = lightbox.querySelector('.lightbox-close');
+const lightboxPrevious = lightbox.querySelector('.lightbox-previous');
+const lightboxNext = lightbox.querySelector('.lightbox-next');
 const template = document.querySelector('#post-template');
 const buildRevision = document.querySelector('#build-revision');
 const buildDate = document.querySelector('#build-date');
@@ -31,6 +35,8 @@ const activeRoute = routeName(window.location.pathname);
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
 let allPosts = [];
+let lightboxItems = [];
+let activeLightboxIndex = -1;
 let postCount = 0;
 let layoutFrame = 0;
 
@@ -94,16 +100,31 @@ const videoVisibilityObserver = new IntersectionObserver(entries => {
   }
 });
 
-function openLightbox(post, index) {
-  const payload = lightboxPayload(post, index);
-  prepareLightboxImage(lightboxImage);
+function openLightbox(index) {
+  const item = lightboxItems[index];
+  if (!item) return;
+  const payload = lightboxPayload(item.post, item.imageIndex);
+  activeLightboxIndex = index;
+  const nextImage = document.createElement('img');
+  nextImage.alt = payload.alt;
+  prepareLightboxImage(nextImage);
+  nextImage.addEventListener('load', () => revealLightboxImage(nextImage));
+  nextImage.addEventListener('error', () => useMediaFallback(nextImage));
+  lightboxImage = swapLightboxImage(lightboxImage, nextImage);
   setMediaSource(lightboxImage, assetPath(payload.src), payload.fallbackUrl);
-  lightboxImage.alt = payload.alt;
   lightboxCaption.textContent = payload.caption;
-  lightbox.showModal();
+  const multiple = lightboxItems.length > 1;
+  lightboxPrevious.hidden = !multiple;
+  lightboxNext.hidden = !multiple;
+  if (!lightbox.open) lightbox.showModal();
 }
 
-function renderPost(post) {
+function navigateLightbox(direction) {
+  const index = neighborLightboxIndex(activeLightboxIndex, lightboxItems.length, direction);
+  if (index >= 0) openLightbox(index);
+}
+
+function renderPost(post, imageOffset) {
   const fragment = template.content.cloneNode(true);
   const article = fragment.querySelector('.post');
   const media = fragment.querySelector('.media');
@@ -129,7 +150,7 @@ function renderPost(post) {
     link.addEventListener('click', event => {
       if (!shouldOpenImageLightbox(event)) return;
       event.preventDefault();
-      openLightbox(post, index);
+      openLightbox(imageOffset + index);
     });
     link.append(img);
     media.append(link);
@@ -165,7 +186,12 @@ function renderResults(query = '') {
   pauseVideos(collage.querySelectorAll('video'));
   collage.replaceChildren();
   postCount = filtered.length;
-  for (const post of filtered) collage.append(renderPost(post));
+  lightboxItems = filtered.flatMap(post => post.images.map((_, imageIndex) => ({ post, imageIndex })));
+  let imageOffset = 0;
+  for (const post of filtered) {
+    collage.append(renderPost(post, imageOffset));
+    imageOffset += post.images.length;
+  }
   for (const post of collage.querySelectorAll('.post')) postResizeObserver.observe(post);
   for (const video of collage.querySelectorAll('video')) videoVisibilityObserver.observe(video);
   layoutCollage();
@@ -225,9 +251,21 @@ themeToggle.addEventListener('click', () => {
   applyTheme(theme, true);
 });
 lightboxClose.addEventListener('click', () => lightbox.close());
-lightboxImage.addEventListener('load', () => revealLightboxImage(lightboxImage));
-lightboxImage.addEventListener('error', () => useMediaFallback(lightboxImage));
-lightbox.addEventListener('close', () => resetLightboxImage(lightboxImage));
+lightboxPrevious.addEventListener('click', () => navigateLightbox(-1));
+lightboxNext.addEventListener('click', () => navigateLightbox(1));
+lightbox.addEventListener('close', () => {
+  activeLightboxIndex = -1;
+  resetLightboxImage(lightboxImage);
+});
+lightbox.addEventListener('keydown', event => {
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    navigateLightbox(-1);
+  } else if (event.key === 'ArrowRight') {
+    event.preventDefault();
+    navigateLightbox(1);
+  }
+});
 lightbox.addEventListener('click', event => {
   if (shouldCloseFromTarget(event.target, lightbox, lightboxFigure)) lightbox.close();
 });

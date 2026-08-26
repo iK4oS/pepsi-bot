@@ -9,6 +9,11 @@ export function lightboxPayload(post, index) {
   };
 }
 
+export function neighborLightboxIndex(index, count, direction) {
+  if (count < 1) return -1;
+  return (index + direction + count) % count;
+}
+
 export function shouldCloseFromTarget(target, dialog, figure) {
   return target === dialog || target === figure;
 }
@@ -25,4 +30,10 @@ export function resetLightboxImage(image) {
   image.hidden = true;
   image.removeAttribute('src');
   delete image.dataset.fallbackUrls;
+}
+
+export function swapLightboxImage(currentImage, replacementImage) {
+  resetLightboxImage(currentImage);
+  currentImage.replaceWith(replacementImage);
+  return replacementImage;
 }
