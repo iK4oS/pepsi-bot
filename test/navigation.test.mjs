@@ -62,4 +62,5 @@ test('content security policy permits Discord attachment fallbacks', async () =>
   const headers = await readFile(new URL('../public/_headers', import.meta.url), 'utf8');
   assert.match(headers, /img-src[^;]*https:\/\/cdn\.discordapp\.com[^;]*https:\/\/media\.discordapp\.net/);
   assert.match(headers, /media-src[^;]*https:\/\/cdn\.discordapp\.com[^;]*https:\/\/media\.discordapp\.net/);
+  assert.match(headers, /script-src[^;]*https:\/\/scripts\.simpleanalyticscdn\.com/);
 });
