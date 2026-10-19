@@ -1,10 +1,36 @@
 {
-  "updatedAt": "2026-10-18T14:52:09.002Z",
+  "updatedAt": "2026-10-19T17:03:35.035Z",
   "lastScannedIds": {
     "1156474286303891486": "1560660465724432515",
-    "1096355083823890452": "1561352717815906325"
+    "1096355083823890452": "1561762098013413399"
   },
   "posts": [
+    {
+      "id": "1561762093437427833",
+      "text": "Forwarded Post",
+      "date": "2026-10-19T15:24:59.212000+00:00",
+      "channelId": "1096355083823890452",
+      "url": "https://discord.com/channels/731881028573986874/1131897266832162857/1561761852646625422",
+      "images": [
+        {
+          "src": "media/1561762093437427833-1561762092699090944.jpg",
+          "thumbnailSrc": "media/thumbnails/1561762093437427833-1561762092699090944.webp",
+          "width": 3000,
+          "height": 4000,
+          "fallbackUrl": "https://cdn.discordapp.com/attachments/1096355083823890452/1561762092699090944/20261019_171242.jpg?ex=6ad787cb&is=6ad6364b&hm=662d31cadc48fad32ad9a3c1bd4599b7428c7745fff0dc60029030aea449569a&"
+        }
+      ],
+      "videos": [
+        {
+          "src": "media/1561762093437427833-1561762093114331348.mp4",
+          "thumbnailSrc": "media/thumbnails/1561762093437427833-1561762093114331348.webp",
+          "width": 720,
+          "height": 1280,
+          "contentType": "video/mp4",
+          "fallbackUrl": "https://cdn.discordapp.com/attachments/1096355083823890452/1561762093114331348/20261019_171929.mp4?ex=6ad787cb&is=6ad6364b&hm=2775b497306436e2f39963229f8228ace70fb4707e221050255d40776bd5be8b&"
+        }
+      ]
+    },
     {
       "id": "1560660465724432515",
       "text": "A generous gift from my sister",
