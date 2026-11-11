@@ -1,10 +1,28 @@
 {
-  "updatedAt": "2026-11-09T20:13:43.092Z",
+  "updatedAt": "2026-11-11T10:43:29.022Z",
   "lastScannedIds": {
     "1156474286303891486": "1567569835188289658",
-    "1096355083823890452": "1569334367317397706"
+    "1096355083823890452": "1570021055890718860"
   },
   "posts": [
+    {
+      "id": "1570021055890718860",
+      "text": "Forwarded Post",
+      "date": "2026-11-11T10:23:09.305000+00:00",
+      "channelId": "1096355083823890452",
+      "url": "https://discord.com/channels/731881028573986874/1131897266832162857/1570020819541823559",
+      "images": [],
+      "videos": [
+        {
+          "src": "media/1570021055890718860-1570021055186206811.mp4",
+          "thumbnailSrc": "media/thumbnails/1570021055890718860-1570021055186206811.webp",
+          "width": 720,
+          "height": 1280,
+          "contentType": "video/mp4",
+          "fallbackUrl": "https://cdn.discordapp.com/attachments/1096355083823890452/1570021055186206811/20261111_111404.mp4?ex=6af5938d&is=6af4420d&hm=608ba8f64bf402c62e8f3f096c9c55f8f1563c5ac338e9ac515105e0b0a6b476&"
+        }
+      ]
+    },
     {
       "id": "1569334367317397706",
       "text": "It's that time again\nMax with a fresh cut",
